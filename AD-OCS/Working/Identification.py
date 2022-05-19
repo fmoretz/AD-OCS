@@ -5,8 +5,6 @@ import statsmodels.api as sm
 
 import pylops
 from scipy.optimize import curve_fit
-from scipy.optimize import least_squares
-from scipy.stats import linregress
 from sklearn.linear_model import LinearRegression
 
 from dataimport import*
@@ -74,8 +72,8 @@ kd     = np.multiply(C_d,mu_max)
 
 X_hydr = XT
 Y_hydr = Dil*(XT_in-XT)
-mdl_hydr1= LinearRegression(fit_intercept=True).fit(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
-mdl_hydr2= LinearRegression(fit_intercept=False).fit(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
+mdl_hydr1= LinearRegression(fit_intercept=True, positive=True).fit(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
+mdl_hydr2= LinearRegression(fit_intercept=False, positive=True).fit(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
 scoreh1 = mdl_hydr1.score(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
 scoreh2 = mdl_hydr2.score(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
 
@@ -95,8 +93,8 @@ fun = 1/(1+10**(pH-pKb))
 X3r = C*fun - KH*P_C
 Y3r = q_C
 
-mdl31= LinearRegression(fit_intercept=True).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
-mdl32= LinearRegression(fit_intercept=False).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
+mdl31= LinearRegression(fit_intercept=True, positive=True).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
+mdl32= LinearRegression(fit_intercept=False, positive=True).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
 score31 = mdl31.score(np.array(X3r).reshape(-1,1), np.array(Y3r))
 score32 = mdl32.score(np.array(X3r).reshape(-1,1), np.array(Y3r))
 
@@ -115,8 +113,8 @@ mu_2 = alfa*Dil + C_d[1]*mu2_max
 
 X4r = mu_1*X_1
 Y4r = Dil*(S1_in - S1) + k_hyd*XT
-mdl41 = LinearRegression(fit_intercept=True).fit(np.array(X4r).reshape(-1,1), np.array(Y4r))
-mdl42 = LinearRegression(fit_intercept=False).fit(np.array(X4r).reshape(-1,1), np.array(Y4r))
+mdl41 = LinearRegression(fit_intercept=True, positive=True).fit(np.array(X4r).reshape(-1,1), np.array(Y4r))
+mdl42 = LinearRegression(fit_intercept=False, positive=True).fit(np.array(X4r).reshape(-1,1), np.array(Y4r))
 score41 = mdl41.score(np.array(X4r).reshape(-1,1), np.array(Y4r))
 score42 = mdl42.score(np.array(X4r).reshape(-1,1), np.array(Y4r))
 if score41 > score42:
@@ -130,8 +128,8 @@ else:
    
 X5r = mu_2
 Y5r = q_M/X_2
-mdl51 = LinearRegression(fit_intercept=True).fit(np.array(X5r).reshape((-1,1)),np.array(Y5r))
-mdl52 = LinearRegression(fit_intercept=False).fit(np.array(X5r).reshape((-1,1)),np.array(Y5r))
+mdl51 = LinearRegression(fit_intercept=True, positive=True).fit(np.array(X5r).reshape((-1,1)),np.array(Y5r))
+mdl52 = LinearRegression(fit_intercept=False, positive=True).fit(np.array(X5r).reshape((-1,1)),np.array(Y5r))
 score51 = mdl51.score(np.array(X5r).reshape(-1,1), np.array(Y5r))
 score52 = mdl52.score(np.array(X5r).reshape(-1,1), np.array(Y5r))
 if score51 > score52:
@@ -148,8 +146,8 @@ X62 = np.array(Dil*(S1_in-S1) + k_hyd*XT).reshape((-1,1))
 X6r = np.hstack((X61,X62))
 Y6r = np.array(q_M)
 
-mdl61 = LinearRegression(fit_intercept=True).fit(X6r,Y6r)
-mdl62 = LinearRegression(fit_intercept=False).fit(X6r,Y6r)
+mdl61 = LinearRegression(fit_intercept=True, positive=True).fit(X6r,Y6r)
+mdl62 = LinearRegression(fit_intercept=False, positive=True).fit(X6r,Y6r)
 score61 = mdl61.score(X6r, Y6r)
 score62 = mdl62.score(X6r, Y6r)
 
@@ -169,8 +167,8 @@ X72 = np.array(q_M).reshape((-1,1))
 X7r = np.hstack((X71,X72))
 Y7r = np.array(q_C - Dil*(C_in - C))
 
-mdl71 = LinearRegression().fit(X7r,Y7r)
-mdl72 = LinearRegression(fit_intercept=False).fit(X7r,Y7r)
+mdl71 = LinearRegression(fit_intercept=False, positive=True).fit(X7r,Y7r)
+mdl72 = LinearRegression(fit_intercept=False, positive=True).fit(X7r,Y7r)
 score71 = mdl71.score(X7r, Y7r)
 score72 = mdl72.score(X7r, Y7r)
 
@@ -179,11 +177,13 @@ if score71 > score72:
     DD = mdl71.coef_[1]
     int7 = 'Yes'
     mdl7 = mdl71
+    print(f'Score: {score71}')
 else:
     CC = mdl72.coef_[0]
     DD = mdl72.coef_[1]
     int7 = 'No'
     mdl7 = mdl72
+    print(f'Score: {score72}')
 
 k2 = BB*k1
 k3 = k6/AA
