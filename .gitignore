@@ -1,3 +1,10 @@
+# folder and files
+OLD
+__pycache__
+AD-OCS/__pycache__
+AD-OCS/OLD
+Working/__pycache__
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
