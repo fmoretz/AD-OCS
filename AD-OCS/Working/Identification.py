@@ -74,8 +74,19 @@ kd     = np.multiply(C_d,mu_max)
 
 X_hydr = XT
 Y_hydr = Dil*(XT_in-XT)
-res_hydr = linregress(X_hydr, Y_hydr)
-k_hyd = res_hydr.slope
+mdl_hydr1= LinearRegression(fit_intercept=True).fit(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
+mdl_hydr2= LinearRegression(fit_intercept=False).fit(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
+scoreh1 = mdl_hydr1.score(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
+scoreh2 = mdl_hydr2.score(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
+
+if scoreh1 > scoreh2:
+    k_hyd = mdl_hydr1.coef_
+    int_hyd = 'Yes'
+    mdl_hyd = mdl_hydr1
+else:
+    k_hyd = mdl_hydr2.coef_
+    int_hyd = 'No'
+    mdl_hyd = mdl_hydr2
 
 # Physical - L/G TRANSFER
 
@@ -84,8 +95,19 @@ fun = 1/(1+10**(pH-pKb))
 X3r = C*fun - KH*P_C
 Y3r = q_C
 
-mdl3 = linregress(X3r, Y3r)
-kLa = mdl3.slope                      # [1/d]      L/G transfer rate
+mdl31= LinearRegression(fit_intercept=True).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
+mdl32= LinearRegression(fit_intercept=False).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
+score31 = mdl31.score(np.array(X3r).reshape(-1,1), np.array(Y3r))
+score32 = mdl32.score(np.array(X3r).reshape(-1,1), np.array(Y3r))
+
+if score31 > score32:
+    kLa = mdl31.coef_
+    int3 = 'Yes'
+    mdl3 = mdl31
+else:
+    kLa = mdl32.coef_
+    int3 = 'No'
+    mdl3 = mdl32
 
 # Yield coefficients: [CODdeg, VFAprof, VFAcons, CO2prod(1), CO2prod(2), CH4prod, hydrolysis]
 mu_1 = alfa*Dil + C_d[0]*mu1_max
@@ -106,7 +128,6 @@ else:
     int4 = 'No'
     mdl4 = mdl42
    
-
 X5r = mu_2
 Y5r = q_M/X_2
 mdl51 = LinearRegression(fit_intercept=True).fit(np.array(X5r).reshape((-1,1)),np.array(Y5r))
@@ -127,18 +148,42 @@ X62 = np.array(Dil*(S1_in-S1) + k_hyd*XT).reshape((-1,1))
 X6r = np.hstack((X61,X62))
 Y6r = np.array(q_M)
 
-mdl6 = LinearRegression().fit(X6r,Y6r)
-AA = mdl6.coef_[0]
-BB = mdl6.coef_[1]/AA
+mdl61 = LinearRegression(fit_intercept=True).fit(X6r,Y6r)
+mdl62 = LinearRegression(fit_intercept=False).fit(X6r,Y6r)
+score61 = mdl61.score(X6r, Y6r)
+score62 = mdl62.score(X6r, Y6r)
 
+if score61 > score62:
+    AA = mdl61.coef_[0]
+    BB = mdl61.coef_[1]/AA
+    int6 = 'Yes'
+    mdl6 = mdl61
+else:
+    AA = mdl62.coef_[0]
+    BB = mdl62.coef_[1]/AA
+    int6 = 'No'
+    mdl6 = mdl62
+        
 X71 = np.array(Dil*(S1_in-S1) + k_hyd*XT).reshape((-1,1))
 X72 = np.array(q_M).reshape((-1,1))
 X7r = np.hstack((X71,X72))
 Y7r = np.array(q_C - Dil*(C_in - C))
 
-mdl7 = LinearRegression().fit(X7r,Y7r)
-CC = np.abs(mdl7.coef_[0])
-DD = np.abs(mdl7.coef_[1])
+mdl71 = LinearRegression().fit(X7r,Y7r)
+mdl72 = LinearRegression(fit_intercept=False).fit(X7r,Y7r)
+score71 = mdl71.score(X7r, Y7r)
+score72 = mdl72.score(X7r, Y7r)
+
+if score71 > score72:
+    CC = mdl71.coef_[0]
+    DD = mdl71.coef_[1]
+    int7 = 'Yes'
+    mdl7 = mdl71
+else:
+    CC = mdl72.coef_[0]
+    DD = mdl72.coef_[1]
+    int7 = 'No'
+    mdl7 = mdl72
 
 k2 = BB*k1
 k3 = k6/AA
@@ -148,9 +193,10 @@ k5 = DD*k6
 k = [k1, k2, k3, k4, k5, k6, k_hyd]
 
 print(f'k1: {k1}, intercept: {int4}')
-print(f'k2: {k2}')
-print(f'k3: {k3}')
-print(f'k4: {k4}')
-print(f'k5: {k5}')
+print(f'k2: {k2}, intercept: {int6}')
+print(f'k3: {k3}, intercept: {int6}')
+print(f'k4: {k4}, intercept: {int7}')
+print(f'k5: {k5}, intercept: {int7}')
 print(f'k6: {k6}, intercept: {int5}')
-print(f'k_hyd: {k_hyd}')
+print(f'k_hyd: {k_hyd}, intercept: {int_hyd}')
+print(f'kLa: {kLa}, intercept: {int3},')
