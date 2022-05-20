@@ -32,9 +32,9 @@ q_tot = q_C+q_M
 x_M   = np.divide(q_M,q_tot)
 
 # Sulfur production model: dSs/dt = (1-y)/y * dXs/dt
-Ss_max = 0.03*XT_in[0]    # maximum sulfur concentration
-Lam    = mu2_max         # Sulfur production lag-time, eqaul to maximum S2 consumption rate [17d]
-Xs_max = 0.035*S2[-1]*k[2]/MW_AAc    # maximum sulfur concentration g/L
+Ss_max = 0.03*XT_in[0]    # maximum sulfur concentration ====
+Lam    = mu2_max         # Sulfur production lag-time, eqaul to maximum S2 consumption rate [d] ===
+Xs_max = 0.035*S2[-1]*k[2]/MW_AAc    # maximum sulfur concentration g/L ====
 
 print('\nSulfur production model: dSs/dt = (1-y)/y * dXs/dt')
 print(f'Max sulfur concentration: {Ss_max}')
