@@ -36,6 +36,7 @@ MANIFEST
 OLD
 __pycache__
 Working/.ipynb_checkpoints
+Working/__pycache__
 
 # Installer logs
 pip-log.txt

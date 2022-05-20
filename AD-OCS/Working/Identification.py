@@ -57,17 +57,20 @@ mu1_max = KS1*alfa/(1-C_d[0])/b         # [1/d] - Max biomass growth rate
 Xr2 = (Dil, S2)
 Yr2 = S2
 
+
 def func2(X,a,b,c,d):
     x1,x2 = X
-    return a*x1*x2 + a*b*x1 + d/(1-d)*b + a*c*x1*(x2**2) + d/(1-d)*c*(x2**2)
+    
+    return alfa/(1-d)/b*x1*x2 + alfa*a/(1-d)/b*x1 + alfa/(1-d)/b/c*x1*(x2**2) + d/(1-d)/c*(x2**2) + d/(1-d)*a
 
-guess2 = [10, 3, 1/300, 0.01]
-beta2, pcov2 = curve_fit(func2, Xr2, Yr2, guess2)
+guess2 = [10, 3, 300, 0.01]
+param_bounds = ([0, 0, 0, 0], [np.inf, np.inf, np.inf, np.inf])
+beta2, pcov2 = curve_fit(func2, Xr2, Yr2, p0=guess2)
 
-KS2     = beta2[1]                          # [g/L]    - Half saturation constant
-C_d[1]  = beta2 [3]                         # [-]      - Proportionality Decay   
-mu2_max = alfa/(1-C_d[1])/beta2[0]          # [1/d]    - Max biomass growth rate
-KI2     = 1/beta2[2]                        # [mmol/L] - Inhibition constant for S2
+KS2     = beta2[0]                          # [g/L]    - Half saturation constant                          
+mu2_max = beta2[1]                          # [1/d]    - Max biomass growth rate        
+KI2     = beta2[2]                          # [mmol/L] - Inhibition constant for S2
+C_d[1]  = beta2[3]                          # [-]      - Proportionality Decay
 
 mu_max = (mu1_max, mu2_max)                 # [1/d]    - Max biomass growth rate
 Ks     = (KS1, KS2)                         # [g/L]    - Half saturation constant
