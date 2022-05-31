@@ -17,13 +17,14 @@ N_S1    = (f_aa+f_pr+f_xc*f_xc_pr)*N_aa
 
 pH_in = 6.8
 
-S1_in = T2["S1in"]                             # [g/L]    - COD in solution (soluble COD): S1
-S2_in = T2["S2in"]                            # [mmol/L] - Volatile Fatty Acids: S2
-C_in  = T2["Cin"]                              # [mmol/L] - Inorganic Carbon
-XT_in = T2["XTin"]                              # [g/L]    - Particulate COD in solution : XT
-N_in  = T2["Nin"]                              # [mmol/L] - Inorganic Nitrogen
+S1_in = float(T2["S1in"])                            # [g/L]    - COD in solution (soluble COD): S1
+S2_in = float(T2["S2in"])                            # [mmol/L] - Volatile Fatty Acids: S2
+C_in  = float(T2["Cin"])                             # [mmol/L] - Inorganic Carbon
+XT_in = float(T2["XTin"])                            # [g/L]    - Particulate COD in solution : XT
+N_in  = float(T2["Nin"])                             # [mmol/L] - Inorganic Nitrogen
 
 B_in  = Kb*C_in/(Kb+10**(-pH_in))
 Z_in  = B_in + S2_in*Ka/(Ka+10**(-pH_in))+N_in
 
 y_in  = [S1_in, S2_in, C_in, Z_in, XT_in]
+

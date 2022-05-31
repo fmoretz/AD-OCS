@@ -7,7 +7,7 @@ import pylops
 from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 
-from dataimport import*
+from Influent import*
 from PhysConstants import*
 from ReactorConf import*
 
@@ -204,4 +204,4 @@ print(f'k4: {k4}, intercept: {int7}')
 print(f'k5: {k5}, intercept: {int7}')
 print(f'k6: {k6}, intercept: {int5}')
 print(f'k_hyd: {k_hyd}, intercept: {int_hyd}')
-print(f'kLa: {kLa}, intercept: {int3},')
+print(f'kLa: {kLa},     intercept: {int3},')

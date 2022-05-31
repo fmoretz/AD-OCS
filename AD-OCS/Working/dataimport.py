@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from pathlib import Path
 
 print('Choose a datasets: \n 1 -> AMOCO_HN \n 2 -> provaADM1')
 name_index = input("->")
@@ -6,8 +8,10 @@ datasets = ["amoco_HN","provaADM1"]
 simname  = datasets[int(name_index) -1]
 print("Data are from:",simname)
 
-folder  =  r'/Users/fmoretta/Desktop/AD-OCS/AD-OCS/data'
-reading_path =  folder + "/" + simname + "py"+ ".xlsx"
+filename: Path = simname + '.xlsx'
+folder: Path = Path(Path.cwd())
+folder: Path = folder.joinpath('data')
+reading_path =  (folder/filename)
 
 colnames = ["HRT","S1","XT", "S2", "X1", "X2", "Z", "C","CO2","B", "pH", "q_C", "P_C", "q_CH4"]
 
@@ -32,7 +36,6 @@ q_M   = T1["q_CH4"]
 
 Dil     = 1/HRT
 
-S1_in = float(T2["S1in"])    # [gCOD/L]
-S2_in = float(T2["S2in"])    # [mmol/L]
-C_in  = float(T2["Cin"])    # [mmol/L]
-XT_in = float(T2["XTin"])    # [gCOD/L]
+
+
+
