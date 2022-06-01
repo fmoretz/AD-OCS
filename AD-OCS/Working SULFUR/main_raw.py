@@ -1,4 +1,4 @@
-# AMOCO_HN with modified identification
+# AMOCO_HN with modified identification - CONTAINS S2 AFFECTED BY SULFUR AND NOT
 
 import math
 import numpy as np
@@ -6,12 +6,12 @@ from scipy.integrate import odeint
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 
-from deviations import*
+from deviationscopy2 import*
 from SS_Algebraic import*
 
 # SYSTEM
 
-y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]]
+y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[5], SSTATE[6]] #==========
 
 def gompertz(x,a,b,c):
     return a*np.exp(-np.exp(b*np.exp(1)/a*(c-x) - 1))
@@ -20,8 +20,10 @@ def growth_SRB(x,a,b,c):
 
 def f_Model_Deviations_Simple(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in):
 
-    XT, X1, X2, Z, S1, S2, C = x
+    XT, X1, X2, Z, S1, S2, S2_new, C = x
     
+    X2_0 = 0.0
+    XT_in_0 =y_in_0[4]
     y_influent = deviation_check(t,y_in)
     
     S1in = y_influent[0]      # [gCOD/L]
@@ -39,24 +41,25 @@ def f_Model_Deviations_Simple(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1
     Pc  = (phi - (phi**2- 4*KH*Pt*CO2)**0.5)/(2*KH)                                                  # [atm] - Partial pressure CO2
     qC  = kLa*(CO2 - KH*Pc)                                                                          # [mmol/L/d] - Carbon Molar Flow
 
-    # Ss_max = 0.02*XT_in*1000/64*S2/XT_in
-    # Xs_max = Y_srb/(1-Y_srb)*Ss_max   # maximum sulfur concentration g/L
-    # mu_max_srb = (- X2_0 + X2)/(t-t_0)                                         
-    # rho_srb = growth_SRB(t, Xs_max, mu_max_srb, 0)
+    Ss_max = 0.02*XT_in*1000/64*S2/XT_in_0
+    Xs_max = Y_srb/(1-Y_srb)*Ss_max   # maximum sulfur concentration g/L
+    mu_max_srb = np.nan_to_num((- X2_0+ X2)/(t - t_span[0]), nan=0, neginf=0)                                       
+    rho_srb = growth_SRB(t, Xs_max, mu_max_srb, 0)
 
     dXT = D*(XTin - XT) - k[6]*XT                                                                    # Evolution of particulate
     dX1 = (mu1 - alfa*D - kd[0])*X1                                                                  # Evolution of biomass 1 (acidogen.)
     dX2 = (mu2 - alfa*D - kd[1])*X2                                                                  # Evolution of biomass 2 (methanogen)
     dZ  = D*(Zin - Z) + (k[0]*N_S1 - N_bac)*mu1*X1 - N_bac*mu2*X2 + kd[0]*N_bac*X1 + kd[1]*N_bac*X2  # Evolution of alcalinity;
     dS1 = D*(S1in - S1) - k[0]*mu1*X1 + k[6]*XT                                                      # Evolution of organic substrate
-    dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2                                                  # Evolution of VFA
+    dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2                                                      # Evolution of VFA
+    dS2_new = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2 - rho_srb/Y_srb                                                     # Evolution of VFA - affected by sulfur
     dC  = D*(Cin - C)   + k[3]*mu1*X1 + k[4]*mu2*X2 - qC                                             # Evolution of inorganic carbon
 
-    dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dC]
+    dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dS2_new, dC]
 
     return dxdt
 
-YOUT = odeint(f_Model_Deviations_Simple,y0,t_span,args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0],y_in))
+YOUT = odeint(f_Model_Deviations_Simple,y0,t_span,args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0],y_in_0))
 
 XT = YOUT[:,0]              # [gCOD/L] - Particulate 
 X1 = YOUT[:,1]              # [g/L]    - Acidogenics  Bacteria  
@@ -64,7 +67,8 @@ X2 = YOUT[:,2]              # [g/L]    - Methanogenic Bacteria
 Z  = YOUT[:,3]              # [mmol/L] - Total Alkalinity
 S1 = YOUT[:,4]              # [g/L]    - Organic Soluble Substrate
 S2 = YOUT[:,5]              # [mmol/L] - VFA dissolved
-C  = YOUT[:,6]              # [mmol/L] - Inorganic Carbon Dissolved
+S2_new = YOUT[:,6]          # [mmol/L] - VFA dissolved
+C  = YOUT[:,7]              # [mmol/L] - Inorganic Carbon Dissolved
 
 # Solver Output
 mu1 = np.zeros(len(XT))
@@ -102,7 +106,6 @@ y_C   = np.divide(q_C,q_tot)                                     # [-]        - 
 
 # Sulfur 
 
-
 Xs = np.zeros(len(XT))
 lam = np.zeros(len(XT))
 Ss  = np.zeros(len(XT))
@@ -117,7 +120,7 @@ for i in range(len(XT)):
     
     Ss_max[i] = 0.02*y_influent[i,4]*1000/64*S2[i]/y_influent[0,4]
     Xs_max[i] = Y_srb/(1-Y_srb)*Ss_max[i]   # maximum sulfur concentration g/L
-    mu_srb[i] = (- X2[0] + X2[i])/(t_span[i] - t_span[0])
+    mu_srb[i] = np.nan_to_num((- X2[0] + X2[i])/(t_span[i] - t_span[0]), nan=0, neginf=0)   
     lam[i]    = 0
     
     # Gompertz function
@@ -196,6 +199,22 @@ plt.ylabel('Gas Molar frac')
 plt.legend()
 plt.grid(True)
 
+# Create a figure to compare S2 and S2 new
+plt.figure(103)
+plt.subplot(3,1,1)
+plt.plot(t_span, S2, label="S2")
+plt.plot(t_span, S2_new,'--', label="new")
+plt.ylabel('S2')
+plt.legend()
+
+plt.subplot(3,1,2)
+plt.plot(t_span, (S2-S2_new))
+plt.ylabel('delta S2')
+
+plt.subplot(3,1,3)
+plt.plot(t_span, growth_rate/Y_srb)
+plt.ylabel('rho/Y_srb')
+
 plt.show()
 
-
+print(growth_rate/Y_srb)

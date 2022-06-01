@@ -6,7 +6,7 @@ from scipy.integrate import odeint
 from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 
-from deviations import*
+from deviationscopy2 import*
 from SS_Algebraic import*
 
 # SYSTEM
@@ -22,6 +22,8 @@ def f_Model_Deviations_Simple(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1
 
     XT, X1, X2, Z, S1, S2, C = x
     
+    X2_0 = 0.0
+    XT_in_0 =y_in_0[4]
     y_in = deviation_check(t,y_in)
     
     S1in = y_in[0]      # [gCOD/L]
@@ -39,17 +41,17 @@ def f_Model_Deviations_Simple(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1
     Pc  = (phi - (phi**2- 4*KH*Pt*CO2)**0.5)/(2*KH)                                                  # [atm] - Partial pressure CO2
     qC  = kLa*(CO2 - KH*Pc)                                                                          # [mmol/L/d] - Carbon Molar Flow
 
-    # Ss_max = 0.02*XT_in*1000/64*S2/y_in[0,4]
-    # Xs_max = Y_srb/(1-Y_srb)*Ss_max   # maximum sulfur concentration g/L
-    # mu_max_srb = (- X2_0 + X2)/(t-t_0)                                         
-    # rho_srb = growth_SRB(t, Xs_max, mu_max_srb, 0)
+    Ss_max = 0.02*XT_in*1000/64*S2/XT_in_0
+    Xs_max = Y_srb/(1-Y_srb)*Ss_max              # maximum sulfur concentration g/L
+    mu_max_srb = np.nan_to_num((- X2 + X2)/(t_span[i] - t_span[0]), nan=0, neginf=0)                                         
+    rho_srb = growth_SRB(t, Xs_max, mu_max_srb, 0)
 
     dXT = D*(XTin - XT) - k[6]*XT                                                                    # Evolution of particulate
     dX1 = (mu1 - alfa*D - kd[0])*X1                                                                  # Evolution of biomass 1 (acidogen.)
     dX2 = (mu2 - alfa*D - kd[1])*X2                                                                  # Evolution of biomass 2 (methanogen)
     dZ  = D*(Zin - Z) + (k[0]*N_S1 - N_bac)*mu1*X1 - N_bac*mu2*X2 + kd[0]*N_bac*X1 + kd[1]*N_bac*X2  # Evolution of alcalinity;
     dS1 = D*(S1in - S1) - k[0]*mu1*X1 + k[6]*XT                                                      # Evolution of organic substrate
-    dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2                                                  # Evolution of VFA
+    dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2 - rho_srb/Y_srb                                                 # Evolution of VFA
     dC  = D*(Cin - C)   + k[3]*mu1*X1 + k[4]*mu2*X2 - qC                                             # Evolution of inorganic carbon
 
     dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dC]
@@ -107,18 +109,18 @@ Ss  = np.zeros(len(XT))
 y_S  = np.zeros(len(XT))
 Ss_max= np.zeros(len(XT))
 Xs_max = np.zeros(len(XT))
-mu_srb = np.zeros(len(XT))
+mu_max_srb = np.zeros(len(XT))
 
 for i in range(len(XT)):
     # Species differences
     
     Ss_max[i] = frac_sulfur*y_influent[i,4]*1000/64*S2[i]/y_influent[0,4]
     Xs_max[i] = Y_srb/(1-Y_srb)*Ss_max[i]   # maximum sulfur concentration g/L
-    mu_srb[i] = (- X2[0] + X2[i])/(t_span[i] - t_span[0])
+    mu_max_srb[i] = np.nan_to_num((- X2[0] + X2[i])/(t_span[i] - t_span[0]), nan=0, neginf=0)
     lam[i]    = 0
     
     # Gompertz function
-    Xs[i]    = gompertz(t_span[i], Xs_max[i], mu_srb[i], lam[i])
+    Xs[i]    = gompertz(t_span[i], Xs_max[i], mu_max_srb[i], lam[i])
     Ss[i]    = (1-Y_srb)/(Y_srb)*Xs[i]
     y_S[i]   = (H_S*Ss[i])/1
     
@@ -137,7 +139,7 @@ q_new   = np.zeros([len(y),3])
 q_W_new  = np.zeros([len(y),3])
 q_W_tot_new   = np.zeros(len(y))
 x_W_new = np.zeros([len(y),3])
-MW_gas  = [MW_met,MW_co,MW_H2S]
+
 
 for i in range(len(XT)):   
     y_sum = sum(y[i])
@@ -177,4 +179,4 @@ plt.grid(True)
 
 print(f'flows: {q_W_new[-1]}')
 print(f'fractions: {x_W_new[-1]}')
-plt.show()
+# plt.show()

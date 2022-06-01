@@ -20,12 +20,15 @@ pH_in = 4.5
 S1_in = float(T2["S1in"])                              # [g/L]    - COD in solution (soluble COD): S1
 S2_in = float(T2["S2in"])                              # [mmol/L] - Volatile Fatty Acids: S2
 C_in  = float(T2["Cin"] )                              # [mmol/L] - Inorganic Carbon
-XT_in = float(T2["XTin"])                              # [g/L]    - Particulate COD in solution : XT
 N_in  = float(T2["Nin"] )                              # [mmol/L] - Inorganic Nitrogen
+XT_in = float(T2["XTin"])                              # [g/L]    - Particulate COD in solution : XT
+
 
 B_in  = Kb*C_in/(Kb+10**(-pH_in))
 Z_in  = B_in + S2_in*Ka/(Ka+10**(-pH_in))+N_in
 
-y_in_0  = [S1_in, S2_in, C_in, Z_in, XT_in]
+y_in_0  = np.array([S1_in, S2_in, C_in, Z_in, XT_in])
+
 
 frac_sulfur = 0.02
+

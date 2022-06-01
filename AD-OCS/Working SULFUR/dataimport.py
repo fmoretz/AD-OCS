@@ -17,6 +17,7 @@ colnames = ["HRT","S1","XT", "S2", "X1", "X2", "Z", "C","CO2","B", "pH", "q_C", 
 
 T1 = pd.read_excel(reading_path, sheet_name = "SS_Values",header = None, names = colnames, skiprows = 1)
 T2 = pd.read_excel(reading_path, sheet_name = "Influent", header = 0)
+T3 = pd.read_excel(reading_path, sheet_name = "Deviations", header = 0, index_col = 0)
 
 # Get raw data
 HRT   = T1["HRT"]
