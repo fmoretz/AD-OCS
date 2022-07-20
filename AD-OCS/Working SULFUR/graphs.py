@@ -21,9 +21,9 @@ plt.tight_layout()
 
 plt.figure(2)
 sub1 = plt.subplot(2,2,1)
-sub1.plot(t_span,q_M,label="CH4")
-sub1.plot(t_span,q_C,label="CO2")
-sub1.plot(t_span,q_S,label="H2S")
+sub1.plot(t_span,q_M_new,label="CH4")
+sub1.plot(t_span,q_C_new,label="CO2")
+sub1.plot(t_span,q_S_new,label="H2S")
 sub1.set_ylabel('Gas Flowrate [mmol/L/d]')
 sub1.set_xlabel('Time [d]')
 sub1.grid(True)
@@ -139,8 +139,8 @@ sub12.set_xlabel('Time [d]')
 sub12.set_xlim(t_span[0],t_span[-1])
 sub12.grid(True)
 
-# plt.show()
+plt.show()
 # Plot the results for the flowrate of the gas
 
-# Calculate the score for the model
+
 
