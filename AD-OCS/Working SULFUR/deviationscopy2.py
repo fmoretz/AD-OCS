@@ -25,7 +25,7 @@ while True:
         index = index+1
         t_change_loc = t_change_vett[index]
         scale_loc    = T3.loc[t_change_loc].to_numpy()
-        print(f'*** CHANGE: {t_change_loc} ***')
+        print(f'*** CHANGE at: {t_change_loc} ***')
     
         
 def deviation_check(t,original):

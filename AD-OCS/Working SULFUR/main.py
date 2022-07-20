@@ -179,4 +179,4 @@ plt.grid(True)
 
 print(f'flows: {q_W_new[-1]}')
 print(f'fractions: {x_W_new[-1]}')
-# plt.show()
+plt.show()

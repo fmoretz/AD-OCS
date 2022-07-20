@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import statsmodels.api as sm
 
-import pylops
 from scipy.optimize import curve_fit
 from sklearn.linear_model import LinearRegression
 
@@ -205,3 +204,6 @@ k = [k1, k2, k3, k4, k5, k6, k_hyd]
 # print(f'k6: {k6}, intercept: {int5}')
 # print(f'k_hyd: {k_hyd}, intercept: {int_hyd}')
 # print(f'kLa: {kLa},     intercept: {int3},')
+
+
+
