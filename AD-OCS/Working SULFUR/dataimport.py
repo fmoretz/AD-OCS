@@ -3,7 +3,8 @@ import numpy as np
 from pathlib import Path
 
 print('Choose a datasets: \n 1 -> AMOCO_HN \n 2 -> provaADM1')
-name_index = input("->")
+name_index = 1 # input("->")
+
 datasets = ["amoco_HN","provaADM1"]
 simname  = datasets[int(name_index) -1]
 print("Data are from:",simname)
@@ -17,6 +18,7 @@ colnames = ["HRT","S1","XT", "S2", "X1", "X2", "Z", "C","CO2","B", "pH", "q_C", 
 
 T1 = pd.read_excel(reading_path, sheet_name = "SS_Values",header = None, names = colnames, skiprows = 1)
 T2 = pd.read_excel(reading_path, sheet_name = "Influent", header = 0)
+T3 = pd.read_excel(reading_path, sheet_name = "Deviations", header = 0, index_col = 0)
 
 # Get raw data
 HRT   = T1["HRT"]

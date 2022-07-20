@@ -1,7 +1,8 @@
 import numpy as np
 
-from Identification import*
 from Influent import*
+from Identification import*
+
 
 mu1_SS = alfa*D + kd[0]
 mu2_SS = alfa*D + kd[1]
