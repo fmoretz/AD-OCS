@@ -11,4 +11,7 @@ MW_APe = 102.13                      # [g/mol] Pentanoic Acid
 MW_co  = 44                          # [g/mol] CO2
 MW_met = 16                          # [g/mol] CH4
 MW_H2S = 34                          # [g/mol] H2S
-Y_srb  = 0.035*64/1000               # [g/mmol] Yield 
+MW_O2  = 32                          # [g/mol] O2
+
+MW_gas  = [MW_met,MW_co,MW_H2S]
+Y_srb  = 0.0342*64/1000               # [g/mmol] Yield 

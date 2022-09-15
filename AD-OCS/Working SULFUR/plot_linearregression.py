@@ -8,7 +8,10 @@ plt.figure(1)
 plt.title('Kinetic Parameters X1')
 plt.plot(Xr1, Yr1,'o',label = 'Original Data')
 plt.plot(Xr1, mdl1.intercept_ + mdl1.coef_[0]*X11 + mdl1.coef_[1]*X12, label = 'fitting')
+plt.plot(Xr1, C_d[0]/(1-C_d[0])*KS1 + alfa/(1-C_d[0])/mu1_max *X11 + alfa*KS1/(1-C_d[0])/mu1_max *X12, label = 'Prediction')
 plt.legend()
+print('OOOOOO')
+print(C_d[0])
 
 plt.figure(2)
 plt.title('Kinetic Parameters X2')
@@ -52,7 +55,6 @@ plt.subplot(1,2,2)
 plt.plot(X62, Y6r,'o', label = 'data')
 plt.plot(X62, mdl6.intercept_ + mdl6.coef_[0]*X61 +mdl6.coef_[1]*X62, 'r', label = 'Fitting')
 plt.xlabel('(D*(S1,in -S1)+K_hyd*XT)')
-
 
 plt.figure(8)
 plt.suptitle('Regression for k4/k1 and k5/k6')
