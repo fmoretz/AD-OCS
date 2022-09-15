@@ -46,7 +46,7 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
     dZ  = D*(Zin - Z) + (k[0]*N_S1 - N_bac)*mu1*X1 - N_bac*mu2*X2 + kd[0]*N_bac*X1 + kd[1]*N_bac*X2  # Evolution of alcalinity;
     dS1 = D*(S1in - S1) - k[0]*mu1*X1 + k[6]*XT                                                      # Evolution of organic substrate
     dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2                                                  # Evolution of VFA
-    dS2_new = D*(S2in - S2_new) + k[1]*mu1*X1 - k[2]*mu2*X2 - rho_srb/Y_srb                              # Evolution of VFA - affected by sulfur
+    dS2_new = D*(S2in- S2_new) + k[1]*mu1*X1 - k[2]*mu2*X2 - rho_srb/Y_srb                              # Evolution of VFA - affected by sulfur
     dC  = D*(Cin - C)   + k[3]*mu1*X1 + k[4]*mu2*X2 - qC                                             # Evolution of inorganic carbon
 
     dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dS2_new,  dC]
@@ -105,8 +105,7 @@ def deviations_check(t, original, t_change_vett):
             scale = T3.loc[t_change].to_numpy()
             break
         else:
-            i = i+1
-            
+            i = i+1            
           
     deviated = original*scale           
     return deviated
