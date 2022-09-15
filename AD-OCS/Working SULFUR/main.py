@@ -13,9 +13,8 @@ from functions import gompertz, growth_SRB, AD_OCS_Model, f_deviations, deviatio
 
 
 # System definition
-t_span = np.linspace(15,250,10)
-
-y_influent = f_deviations(t_span, T3.index.values, y_in_0)
+t_span = np.linspace(0,220,2000)
+y_influent = f_deviations(t_span, T3.index.values, y_in_0) # Get the deviated influent values at each timestamp
 
 # Ode Integration
 y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[5], SSTATE[6]] # initial conditions established from SS
@@ -53,7 +52,7 @@ for x in range(len(XT)):
     q_M[x] = k[5]*mu2[x]*X2[x]                                   # [mmol/L/d] - CH4 Outlet Molar Flow
     pH[x]  = np.real(-np.log10(Kb*CO2[x]/B[x]))                  # [-]        - System pH
 
-q_tot = q_C+q_M                                                  # [mmol/L/d] - Outlet global molar flow  
+q_tot = q_C + q_M                                                   # [mmol/L/d] - Outlet global molar flow  
 
 # Compute Mass Flows
 
@@ -77,21 +76,26 @@ mu_srb = np.zeros(len(XT))
 growth_rate = np.zeros(len(XT))
 
 for i in range(len(XT)):
+
     # Species differences
     
-    Ss_max[i] = 0.02*y_influent[i,4]*1000/64*S2[i]/y_influent[0,4]
+    Ss_max[i] = frac_sulfur*y_influent[i,4]*1000/64*S2[i]/y_influent[0,4]
     Xs_max[i] = Y_srb/(1-Y_srb)*Ss_max[i]   # maximum sulfur concentration g/L
     mu_srb[i] = np.nan_to_num((- X2[0] + X2[i])/(t_span[i] - t_span[0]), nan=0, neginf=0)   
     lam[i]    = 0
     
     # Gompertz function
-    Xs[i]    = gompertz(t_span[i], Xs_max[i], mu_srb[i], lam[i])
+    Xs[i]          = gompertz(t_span[i], Xs_max[i], mu_srb[i], lam[i])
     growth_rate[i] = growth_SRB(t_span[i], Xs_max[i], mu_srb[i], lam[i])
-    Ss[i]    = (1-Y_srb)/(Y_srb)*Xs[i]
+    Ss[i]          = (1-Y_srb)/(Y_srb)*Xs[i]
+
+    # Sulfur G/L equilibrium
     y_S[i]   = (H_S*Ss[i])/1
-    
-print(f'mu1,max: {mu1_max}; Ks1:  {KS1}; Cd1: {C_d[0]}')
-print(f'mu2,max: {mu2_max}; Ks2:  {KS2}; KI2: {KI2}; Cd2: {C_d[1]}')
+
+# print(f'mu_srb: {mu_srb}')
+# print(f'Xs_max: {Xs_max}')
+# print(f'mu1,max: {mu1_max}; Ks1:  {KS1}; Cd1: {C_d[0]}')
+# print(f'mu2,max: {mu2_max}; Ks2:  {KS2}; KI2: {KI2}; Cd2: {C_d[1]}')
 print(f"Mole fractions in the gas at the end: CH4: {y_M[-1]}, CO2 {y_C[-1]}")
 print(f"Mass fraction of methane in the gas at the end",float(x_M_W[-1]))
 
@@ -102,9 +106,9 @@ y_M_new = y_M/y_sum
 y_C_new = y_C/y_sum
 y_S_new = y_S/y_sum
 
-q_M_new = y_M*q_tot
-q_C_new = y_C*q_tot
-q_S_new = y_S*q_tot
+q_M_new = y_M_new*q_tot
+q_C_new = y_C_new*q_tot
+q_S_new = y_S_new*q_tot
 
 q_C_W = q_C_new*MW_co/1000                                               # [g/L/d]    - CO2 Outlet mass flow of
 q_M_W = q_M_new*MW_met/1000                                              # [g/L/d]    - CH4 Outlet mass flow  
@@ -117,28 +121,34 @@ x_S_W = q_S_W/q_W_tot                                                    # [-]  
 
 plt.figure(100)
 plt.subplot(4,1,1)
-plt.plot(t_span, Xs, label="Gompertz")
+plt.plot(t_span, Xs, label="SRB")
+plt.plot(t_span, Xs_max,'--', label="Max")
+plt.legend()
 plt.ylabel('Xs [g/L]')
 plt.grid(True)
 
+
 plt.subplot(4,1,2)
+plt.grid(True)
+plt.plot(t_span, Ss, label="Sulfur")
+plt.plot(t_span, S2, label="S2")
+plt.plot(t_span, Ss_max,'--', label="Max")
+plt.xlabel('Time [d]')
+plt.ylabel('S [mmol/L]')
+plt.legend()
+
+plt.subplot(4,1,3)
 plt.plot(t_span, growth_rate)
 plt.xlabel('Time [d]')
 plt.ylabel('dX/dt [g/L/d]')
 
 plt.grid(True)
 
-plt.subplot(4,1,3)
-plt.grid(True)
-plt.plot(t_span, Ss)
-plt.xlabel('Time [d]')
-plt.ylabel('Ss [mmol/L]')
-
 plt.subplot(4,1,4)
 plt.grid(True)
 plt.plot(t_span, mu_srb)
 plt.xlabel('Time [d]')
-plt.ylabel('mu_srb [g/L/d]')
+plt.ylabel('mu_max [g/L/d]')
 
 plt.figure(101)
 plt.plot(t_span, q_M,'r--', label="CH4")
@@ -165,16 +175,29 @@ plt.figure(103)
 plt.subplot(3,1,1)
 plt.plot(t_span, S2, label="S2")
 plt.plot(t_span, S2_new,'--', label="new")
-plt.ylabel('S2')
+plt.ylabel('S2 [mmol/L]')
 plt.legend()
+
+
+
 
 plt.subplot(3,1,2)
 plt.plot(t_span, (S2-S2_new))
 plt.ylabel('delta S2')
 
+delta = np.zeros(len(t_span))
+for i in range (len(t_span)):
+    if i > 0:
+        delta[i] = Xs[i] - Xs[i-1]
+    else:
+        delta[i] = 0
+    
 plt.subplot(3,1,3)
-plt.plot(t_span, mu_srb, label="mu_srb")
-plt.plot(t_span, growth_rate, label="growth_rate")
+plt.ylabel(' Xs growth [g/L/d]')
+# plt.plot(t_span, mu_srb, label="mu_srb")
+plt.plot(t_span, growth_rate, label="rho_srb")
+plt.xlabel('Time [d]')
 plt.legend()
+print(S2-S2_new)
 
 plt.show()

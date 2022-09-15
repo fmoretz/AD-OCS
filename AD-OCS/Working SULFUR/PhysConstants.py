@@ -14,4 +14,4 @@ MW_H2S = 34                          # [g/mol] H2S
 MW_O2  = 32                          # [g/mol] O2
 
 MW_gas  = [MW_met,MW_co,MW_H2S]
-Y_srb  = 0.035*64/1000               # [g/mmol] Yield 
+Y_srb  = 0.0342*64/1000               # [g/mmol] Yield 

@@ -24,7 +24,7 @@ mdl1 = LinearRegression(positive=True).fit(Xr1,Yr1)
 a,b = mdl1.coef_
 c = mdl1.intercept_
 
-KS1 = a                                 # [g/L] - Half saturation constant
+KS1 = b/a                                 # [g/L] - Half saturation constant
 C_d[0]  = c/(KS1 + c)                   # [-]   - Proportionality Decay
 mu1_max = KS1*alfa/(1-C_d[0])/b         # [1/d] - Max biomass growth rate
 
@@ -172,16 +172,16 @@ k5 = DD*k6
 
 k = [k1, k2, k3, k4, k5, k6, k_hyd]
 
-# print(f'mu1,max: {mu1_max}; Ks1:  {KS1}; Cd1: {C_d[0]}')
-# print(f'mu2,max: {mu2_max}; Ks2:  {KS2}; KI2: {KI2}; Cd2: {C_d[1]}')
-# print(f'k1: {k1}, intercept: {int4}')
-# print(f'k2: {k2}, intercept: {int6}')
-# print(f'k3: {k3}, intercept: {int6}')
-# print(f'k4: {k4}, intercept: {int7}')
-# print(f'k5: {k5}, intercept: {int7}')
-# print(f'k6: {k6}, intercept: {int5}')
-# print(f'k_hyd: {k_hyd}, intercept: {int_hyd}')
-# print(f'kLa: {kLa},     intercept: {int3},')
+print(f'mu1,max: {mu1_max}; Ks1:  {KS1}; Cd1: {C_d[0]}')
+print(f'mu2,max: {mu2_max}; Ks2:  {KS2}; KI2: {KI2}; Cd2: {C_d[1]}')
+print(f'k1: {k1}, intercept: {int4}')
+print(f'k2: {k2}, intercept: {int6}')
+print(f'k3: {k3}, intercept: {int6}')
+print(f'k4: {k4}, intercept: {int7}')
+print(f'k5: {k5}, intercept: {int7}')
+print(f'k6: {k6}, intercept: {int5}')
+print(f'k_hyd: {k_hyd}, intercept: {int_hyd}')
+print(f'kLa: {kLa},     intercept: {int3},')
 
 
 

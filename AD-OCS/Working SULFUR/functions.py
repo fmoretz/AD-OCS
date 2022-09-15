@@ -12,8 +12,8 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
     '''Main function used in the code: represents the AD-OCS model equations to be integrated'''   
     XT, X1, X2, Z, S1, S2, S2_new, C = x
     
-    X2_0 = 0.0
-    XT_in_0 =y_in_0[4] # Initial value of the influent particulate
+    
+    XT_in_0 = y_in_0[4] # Initial value of the influent particulate
 
     y_influent = deviations_check(t, y_in, t_change_vett)
     
@@ -35,22 +35,21 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
     Ss_max = 0.02*XT_in*1000/64*S2/XT_in_0
     Xs_max = Y_srb/(1-Y_srb)*Ss_max   # maximum sulfur concentration g/L
     if t > 0:
-        mu_max_srb = np.nan_to_num((X2 - X2_0)/(t - t_0), nan=0, neginf=0)         # /(t-t_0) 
+        mu_max_srb = np.nan_to_num((X2 - X2_0)/(t - t_0), nan=0, neginf=0)        
     else:
         mu_max_srb = 0
-    rho_srb = growth_SRB(t, Xs_max, mu_max_srb, 0)
-    
-    print(rho_srb)
+    rho_srb = growth_SRB(t, Xs_max, mu_max_srb, 0)  
+        
     dXT = D*(XTin - XT) - k[6]*XT                                                                    # Evolution of particulate
     dX1 = (mu1 - alfa*D - kd[0])*X1                                                                  # Evolution of biomass 1 (acidogen.)
     dX2 = (mu2 - alfa*D - kd[1])*X2                                                                  # Evolution of biomass 2 (methanogen)
     dZ  = D*(Zin - Z) + (k[0]*N_S1 - N_bac)*mu1*X1 - N_bac*mu2*X2 + kd[0]*N_bac*X1 + kd[1]*N_bac*X2  # Evolution of alcalinity;
     dS1 = D*(S1in - S1) - k[0]*mu1*X1 + k[6]*XT                                                      # Evolution of organic substrate
     dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2                                                  # Evolution of VFA
-    dS2_new = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2 - rho_srb/Y_srb                              # Evolution of VFA - affected by sulfur
+    dS2_new = D*(S2in - S2_new) + k[1]*mu1*X1 - k[2]*mu2*X2 - rho_srb/Y_srb                              # Evolution of VFA - affected by sulfur
     dC  = D*(Cin - C)   + k[3]*mu1*X1 + k[4]*mu2*X2 - qC                                             # Evolution of inorganic carbon
 
-    dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dS2_new, dC]
+    dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dS2_new,  dC]
 
     return dxdt
 
