@@ -1,4 +1,4 @@
-''' Functions to be called in the main code '''
+''' Contains ALL the functions to be called in the main code '''
 
 from Influent import*
 
@@ -12,9 +12,9 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
     '''Main function used in the code: represents the AD-OCS model equations to be integrated'''   
     XT, X1, X2, Z, S1, S2, S2_new, C = x
     
-    XT_in_0 = y_in_0[4] # Initial value of the influent particulate
-    X2_0 = X2_pre[0]    # Initial value of the biomass 2 from the previous simulation
-    y_influent = deviations_check(t, y_in, t_change_vett)
+    XT_in_0 = y_in_0[4]         # Initial value of the influent particulate
+    X2_0 = X2_pre[0]            # Initial value of the biomass 2 from the previous simulation
+    y_influent = deviations_check(t, y_in, t_change_vett) # Evaluate the influent deviations with ane external function
     
     S1in = y_influent[0]      # [gCOD/L]
     S2in = y_influent[1]      # [mmol/L]
@@ -31,33 +31,29 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
     Pc  = (phi - (phi**2- 4*KH*Pt*CO2)**0.5)/(2*KH)                                                  # [atm] - Partial pressure CO2
     qC  = kLa*(CO2 - KH*Pc)                                                                          # [mmol/L/d] - Carbon Molar Flow
 
-    Ss_max = 0.02*XT_in*1000/64*S2/XT_in_0      # maximum sulfur concentration g/L
-    Xs_max = Y_srb/(1-Y_srb)*Ss_max             # maximum biomass concentration g/L
+    Ss_max = 0.02*XT_in*1000/64*S2/XT_in_0      # maximum sulfur concentration [g/L] - 0.02 is the maximum sulfur concentration in the influent [gCOD/gCOD]
+    Xs_max = Y_srb/(1-Y_srb)*Ss_max             # maximum biomass concentration [gCOD/L] - by realtionship between Ss and Xs (microbioloigy)
     
     if t > t_0:        
-        t_span_loc = t_span[t_span < t]
-        X2_upto = X2_pre[t_span<t]
-        mu_loc = np.zeros(len(t_span_loc))
-        rho_srb_loc = np.zeros(len(t_span_loc))
-        for timestep in range(len(t_span_loc)):
-            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/(t_span_loc[timestep] - t_span_loc[0])
+        t_span_loc = t_span[t_span < t]     # From t_span get the values smaller than t
+        X2_upto = X2_pre[t_span<t]          # From X2_pre (AMOCO_HN) get the values corresponding to t_span_loc
+        mu_loc = np.zeros(len(t_span_loc))  # Preallocation
+        rho_srb_loc = np.zeros(len(t_span_loc)) # Preallocation
+
+        for timestep in range(len(t_span_loc)): # Iteration along t_span_loc
+
+            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/(t_span_loc[timestep] - t_span_loc[0]) # Calculate the local mu by the slope of the X2_upto curve
             if np.isnan(mu_loc[timestep]):
-                mu_loc[timestep] = 0
-            rho_srb_loc[timestep] = growth_SRB(t, Xs_max, mu_loc[timestep], 0)  
+                mu_loc[timestep] = 0 # If the slope is nan, set it to 0
+            rho_srb_loc[timestep] = growth_SRB(timestep, Xs_max, mu_loc[timestep], 0)  # Calculate the local SRB growth rate with the Gompertz derivative
             
         print('t:',t)
-        rho_srb = np.max(rho_srb_loc) 
-        # replace nan with 0
-        
-                  
-             
+        rho_srb = np.max(rho_srb_loc) # At each t take the maximum value of the local SRB growth rate, it is the "true" SRB growth rate to be used later                     
+        print('rho_srb:',rho_srb)    
     else:
         mu_max_srb = 0
         rho_srb = growth_SRB(t, Xs_max, mu_max_srb, 0)  
 
-    rates_vec =  initflow = {'time': t, 'rho': rho_srb}
-    rates_df = rates_df.append(rates_vec, ignore_index=True)
-    print(rho_srb)
     dXT = D*(XTin - XT) - k[6]*XT                                                                    # Evolution of particulate
     dX1 = (mu1 - alfa*D - kd[0])*X1                                                                  # Evolution of biomass 1 (acidogen.)
     dX2 = (mu2 - alfa*D - kd[1])*X2                                                                  # Evolution of biomass 2 (methanogen)

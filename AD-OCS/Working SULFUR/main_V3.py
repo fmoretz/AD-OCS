@@ -17,16 +17,22 @@ t_span = np.linspace(0,200,453) # time span
 
 y_influent = f_deviations(t_span, T3.index.values, y_in_0) # Get the deviated influent values at each timestamp
 
-# Ode Integration of AMOCO_HN: use dto get X2 
+# --------------------------------------------------------------------------------------------
+# Ode Integration of AMOCO_HN: use to get X2 
+# --------------------------------------------------------------------------------------------
+
 y0= [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions established from SS
 
 YOUT_pre = odeint(AMOCO_HN, y0, t_span, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values))
 X2_pre = YOUT_pre[:,2]
 print('************** AMOCOHN OK *******************')
+
+# --------------------------------------------------------------------------------------------
 # Ode Integration of the AD_OCS_Model: uses the previous X2 to get rho
+# --------------------------------------------------------------------------------------------
+
 y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[5], SSTATE[6]] # initial conditions established from SS
-initflow = {'time': [0], 'rho': [0]}
-rates_df = pd.DataFrame(initflow)
+
 YOUT = odeint(AD_OCS_Model, y0, t_span, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span, rates_df))
 
 # Get results
@@ -40,6 +46,7 @@ S2_new = YOUT[:,6]          # [mmol/L] - VFA dissolved
 C  = YOUT[:,7]              # [mmol/L] - Inorganic Carbon Dissolved
 
 print('************** AD_OCS_Model OK *******************')
+
 # Solver Output: from all the variables from the ones of the ODE
 mu1 = np.zeros(len(t_span))
 mu2 = np.zeros(len(t_span))
