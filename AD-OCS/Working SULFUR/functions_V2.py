@@ -54,7 +54,59 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_span,
     dZ  = D*(Zin - Z) + (k[0]*N_S1 - N_bac)*mu1*X1 - N_bac*mu2*X2 + kd[0]*N_bac*X1 + kd[1]*N_bac*X2  # Evolution of alcalinity;
     dS1 = D*(S1in - S1) - k[0]*mu1*X1 + k[6]*XT                                                      # Evolution of organic substrate
     dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2                                                  # Evolution of VFA
-    dS2_new = D*(S2in - S2_new) + k[1]*mu1*X1 - k[2]*mu2*X2 - rho_true/Y_srb                              # Evolution of VFA - affected by sulfur
+    dS2_new = D*(S2in - S2_new) + k[1]*mu1*X1 - k[2]*mu2*X2 - rho_true/Y_srb                         # Evolution of VFA - affected by sulfur
+    dC  = D*(Cin - C)   + k[3]*mu1*X1 + k[4]*mu2*X2 - qC                                             # Evolution of inorganic carbon
+
+    dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dS2_new, dC]
+
+    return dxdt
+
+def AMOCO_HN(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_span,y_in,t_change_vett):   # Model deviations function
+    '''Main function used in the code: represents the AD-OCS model equations to be integrated'''   
+    XT, X1, X2, Z, S1, S2, C = x
+    
+    t_0 = t_span[0]
+    XT_in_0 = y_in_0[4] # Initial value of the influent particulate
+
+    y_influent = deviations_check(t, y_in, t_change_vett)
+    
+    S1in = y_influent[0]      # [gCOD/L]
+    S2in = y_influent[1]      # [mmol/L]
+    Cin  = y_influent[2]      # [mmol/L]
+    Zin  = y_influent[3]      # [mmol/L]
+    XTin = y_influent[4]      # [gCOD/L]
+   
+    mu1 = mu_max[0]*(S1/(S1+Ks[0]))                                                                  # Monod
+    mu2 = mu_max[1]*(S2/(S2+Ks[1]+S2**2/KI2))                                                        # Haldane
+
+    qM  = k[5]*mu2*X2                                                                                # [mmol/L/day] - Methane molar flow 
+    CO2 = C + S2 - Z                                                                                 # [mmol/L]     - CO2 Dissolved
+    phi = CO2 + KH*Pt + qM/kLa
+    Pc  = (phi - (phi**2- 4*KH*Pt*CO2)**0.5)/(2*KH)                                                  # [atm] - Partial pressure CO2
+    qC  = kLa*(CO2 - KH*Pc)                                                                          # [mmol/L/d] - Carbon Molar Flow
+
+    Ss_max = 0.02*XT_in*1000/64*S2/XT_in_0
+    Xs_max = Y_srb/(1-Y_srb)*Ss_max   # maximum sulfur concentration g/L
+
+    t_span_loc = t_span[t_span<=t]
+    rho_srb = np.zeros(len(t_span))
+
+    
+    for snap in range(len(t_span)):      
+    
+        mu_max_loc = np.nan_to_num((X2 - X2_0)/(t_span[snap] - t_0), nan=0, neginf=0)   #===========   
+    
+        rho_srb[snap] = growth_SRB(t, Xs_max, mu_max_loc, 0)  
+    
+    rho_true = np.nanmax(rho_srb)
+    print(rho_true)
+
+    dXT = D*(XTin - XT) - k[6]*XT                                                                    # Evolution of particulate
+    dX1 = (mu1 - alfa*D - kd[0])*X1                                                                  # Evolution of biomass 1 (acidogen.)
+    dX2 = (mu2 - alfa*D - kd[1])*X2                                                                  # Evolution of biomass 2 (methanogen)
+    dZ  = D*(Zin - Z) + (k[0]*N_S1 - N_bac)*mu1*X1 - N_bac*mu2*X2 + kd[0]*N_bac*X1 + kd[1]*N_bac*X2  # Evolution of alcalinity;
+    dS1 = D*(S1in - S1) - k[0]*mu1*X1 + k[6]*XT                                                      # Evolution of organic substrate
+    dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2                                                  # Evolution of VFA
     dC  = D*(Cin - C)   + k[3]*mu1*X1 + k[4]*mu2*X2 - qC                                             # Evolution of inorganic carbon
 
     dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dS2_new, dC]

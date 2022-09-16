@@ -137,8 +137,8 @@ V_gas =  300 #m^3
 V_ad = V_liq + V_gas #m^-3
 
 # reading influent and initial condition data from csv files
-influent_state = pd.read_csv("digester_influent.csv")
-initial_state = pd.read_csv("digester_initial.csv")
+influent_state = pd.read_csv("digester_influent_original.csv")
+initial_state = pd.read_csv("digester_initial_original.csv")
 
 # Function to set influent values for influent state variables at each simulation step
 def setInfluent(i):
@@ -687,7 +687,6 @@ for u in t[1:]:
   if q_h2 < 0:
     q_h2 = 0
 
-
   flowtemp = {'q_gas [m3/d]' : q_gas, 'q_ch4 [m3/d]' : q_ch4, 'q_co2 [m3/d]' : q_co2, 'q_h2 [m3/d]' : q_h2}
   gasflow = gasflow.append(flowtemp, ignore_index=True)
 
@@ -703,12 +702,12 @@ for u in t[1:]:
   t0 = u
       
 print('CHECK 2')
-# Write the dynamic simulation resutls to csv
+# Write the dynamic simulation results to csv
 phlogarray = -1 * np.log10(simulate_results['pH'])
 simulate_results['pH'] = phlogarray
 print('CHECK 3')
-simulate_results.to_csv("dynamic_out.csv", index = False)
-gasflow.to_csv("gas_flows.csv", index = False) #m^3.d^-1
+simulate_results.to_csv("dynamic_out_original.csv", index = False)
+gasflow.to_csv("gas_flows_original.csv", index = False) #m^3.d^-1
 
 ## ring test begin
 # to compare the resutls with the dynamic simulation data from the BSM2 Matlab implementation

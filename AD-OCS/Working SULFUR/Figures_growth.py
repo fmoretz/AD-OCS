@@ -130,15 +130,13 @@ for j in range(len(t_span)):
     
     for ii in range(len(t_span)):
 
-        mu_srb_[j,ii] = (- X2[0] + X2[ii])/(t_span[ii] - t_span[0])     
+        mu_srb_[j,ii] = (- X2[0] + X2[ii])/(t_span[ii] - t_span[0])    
     
         Xs_[j,ii]  = gompertz(t_span[ii], Xs_max_[j], mu_srb_[j,ii], 0)
         Ss_[j,ii]  = Xs_[j,ii]*(1-Y_srb)/(Y_srb)
         rho_[j,ii] = growth_SRB(t_span[ii], Xs_max_[j], mu_srb_[j,ii], 0)
     
-    rho_true[j] = np.nanmax(rho_[j])
-       # get max of rho omitting nan
-      
+    rho_true[j] = np.nanmax(rho_[j]) # get max of rho omitting nan     
 
     plt.subplot(2,1,1)
     # label with the index of the time step

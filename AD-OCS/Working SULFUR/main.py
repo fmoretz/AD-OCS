@@ -200,4 +200,8 @@ plt.xlabel('Time [d]')
 plt.legend()
 print(S2-S2_new)
 
+plt.figure(104)
+
+plt.plot(t_span, X2)
+
 plt.show()
