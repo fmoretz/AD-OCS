@@ -4,7 +4,7 @@ V 1.1: Sulfur Evaluation in the standard way. Derivative is punctual
  Sulfur evaluated accounting for the maximum of the previous derivatives
 
 V 2.1: Not works properly. Tries to call everything in the ode
-V 2.2: Works. First simulation with AMOCO_HN to get X2 and only then AD_OCS. 
+V 2.2: CURRENT VERSION. First simulation with AMOCO_HN to get X2 and only then AD_OCS. 
 
 *** Version 3 ***
 Oxygen addition
