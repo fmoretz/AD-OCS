@@ -187,7 +187,7 @@ for i in range(len(t_span)):
         r_SOB = k_SOB*(C_S**alfa)*(C_O2**beta)                        # [mol/L/d] - Reaction rate SOB
         BM_S  = n_S_int[i] - n_S  + V_gas*coeff_S*r_SOB*1e+3          # [mol/d]   - Sulfur Balance
         BM_O2 = n_O2_in    - n_O2 + V_gas*coeff_O2*r_SOB*1e+3         # [mol/d]   - Oxygen Balance
-        print(r_SOB)
+        print('r = ', r_SOB*1e+3*32,'[mg/L/d]')
         return [BM_S, BM_O2]
 
     y0 = [0.02, 0.015]
