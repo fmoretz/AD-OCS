@@ -1,5 +1,8 @@
 # Physical Constants
-Rgas = 8.2e-5
+Rgas_L_atm_K = 0.08205746 # L*atm/(mol*K)
+Rgas_J_mol_K = 8.3144598 # J/(mol*K)
+Rgas_m3_atm_K = 0.08205746e-3 # m^3*atm/(mol*K)
+
 Ka   = 1.5e-5
 Kb   = 6.5e-7
 Kc   = 4.5e-11

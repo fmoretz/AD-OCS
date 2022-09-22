@@ -49,7 +49,7 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
             
         print('t:',t)
         rho_srb = np.max(rho_srb_loc) # At each t take the maximum value of the local SRB growth rate, it is the "true" SRB growth rate to be used later                     
-        print('rho_srb:',rho_srb)    
+          
     else:
         mu_max_srb = 0
         rho_srb = growth_SRB(t, Xs_max, mu_max_srb, 0)  
