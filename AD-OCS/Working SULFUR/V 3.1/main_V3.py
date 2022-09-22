@@ -1,4 +1,6 @@
-# AMOCO_HN with modified identification - CONTAINS S2 AFFECTED BY SULFUR AND NOT
+''' AD_OCS Model with sulfur addition and oxygen implementation
+    First draft vesion: No reaction and recalculation of the variable aftewards'''
+
 
 import math
 import numpy as np
@@ -86,10 +88,11 @@ y_C   = np.divide(q_C,q_tot)                                     # [-]        - 
 
 q_O2   = np.zeros(len(t_span))                                   # [mmol/L/d] - O2 Outlet Molar Flow
 r_O2   = np.zeros(len(t_span))                                   # [mmol/L/d] - Reaction rate O2-H2S
+
 Xs     = np.zeros(len(t_span))                                   # [g/L]      - Sulfate Reducing Bacteria
-Ss     = np.zeros(len(t_span))                                   # [g/L]      - Sulfur dissolved
+Ss     = np.zeros(len(t_span))                                   # [mmol/L]      - Sulfur dissolved
 y_S    = np.zeros(len(t_span))                                   # [-]        - Sulfur Mole fraction in gas phase
-Ss_max = np.zeros(len(t_span))                                   # [g/L]      - Maximum Sulfur dissolved concentration
+Ss_max = np.zeros(len(t_span))                                   # [mmol/L]      - Maximum Sulfur dissolved concentration
 Xs_max = np.zeros(len(t_span))                                   # [g/L]      - Maximum Sulfate Reducing Bacteria concentration (Gompertz Asymptote)
 mu_srb = np.zeros(len(t_span))                                   # [g/L/d]    - Gompertz parameter for SRB growth
 growth_rate = np.zeros(len(t_span))                              # [g/L/d]    - Gompertz derivative: states the growth rate of SRB

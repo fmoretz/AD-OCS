@@ -3,7 +3,7 @@ import numpy as np
 from PhysConstants import*
 
 D    = 0.05    # [1/d] Dilution rate
-T    = 35      # [°C]
+T = 35      # [°C]
 Pt   = 1       # [atm]
 alfa = 1
 V_liq = 3400    # [m3] Volume of the reactor
@@ -18,7 +18,10 @@ KH = 1/(KH/55342)                                                 # [mmol/L/atm]
 
 
 # H2S Data
+
 H_S  = 0.1367719*T + 2.0180702               # [atm]        - Henry's constant CO2 at [T]°C - Partial Pressure Relation: Linear regression on Perry's data
 H_S  = 0.00030308*(T**2) + 0.11276471*T +2.44557423
 KH_S = 1/(H_S*100/55342)                    # [mmol/L/atm] - Henry's constant CO2 at [T]°C - Concentrations Relation
 H_S  = 1/KH_S                               # [atm L/mmol] 
+
+P_dig = 1 # [atm] Pressure of the digester
