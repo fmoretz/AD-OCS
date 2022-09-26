@@ -10,13 +10,23 @@ import matplotlib.pyplot as plt
 
 from SS_Algebraic import*
 from Influent import*
+from GLConstants import*
 
-from functions_V3 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviations, deviations_check
+from functions_V4 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviations, deviations_check
+from GL_Equilibrium import f_RR_equilibrium
 # Oxygen test
-q_O2_in = 0.5 # [mmol/L/d] - Influent O2 flowrate PROVA!!!!
-
 # System definition
-t_span = np.linspace(0,200,300) # time span
+print(KH_S)
+print(H_S_atm)
+# System definition
+d_start = 10        # [d] - Start time
+d_end   = 40        # [d] - End time
+hours   = 6         # [h] - Discretization time
+n_times = int((d_end-d_start)*24/hours) # Number of time steps
+
+print('***Intervals of {hours} hours. \n {n_times} time steps***'.format(hours=hours, n_times=n_times))
+
+t_span = np.linspace(d_start,d_end,n_times) # time span
 
 y_influent = f_deviations(t_span, T3.index.values, y_in_0) # Get the deviated influent values at each timestamp
 
@@ -24,7 +34,7 @@ y_influent = f_deviations(t_span, T3.index.values, y_in_0) # Get the deviated in
 # Ode Integration of AMOCO_HN: use to get X2 
 # --------------------------------------------------------------------------------------------
 
-y0= [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions established from SS
+y0= [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions esxkcdlished from SS
 
 YOUT_pre = odeint(AMOCO_HN, y0, t_span, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values))
 X2_pre = YOUT_pre[:,2]
@@ -34,7 +44,7 @@ print('************** AMOCOHN OK *******************')
 # Ode Integration of the AD_OCS_Model: uses the previous X2 to get rho
 # --------------------------------------------------------------------------------------------
 
-y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[5], SSTATE[6]] # initial conditions established from SS
+y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions esxkcdlished from SS
 
 YOUT = odeint(AD_OCS_Model, y0, t_span, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span))
 
@@ -45,7 +55,6 @@ X2 = YOUT[:,2]              # [g/L]    - Methanogenic Bacteria
 Z  = YOUT[:,3]              # [mmol/L] - Total Alkalinity
 S1 = YOUT[:,4]              # [g/L]    - Organic Soluble Substrate
 S2 = YOUT[:,5]              # [mmol/L] - VFA dissolved
-S2_new = YOUT[:,6]          # [mmol/L] - VFA dissolved
 C  = YOUT[:,7]              # [mmol/L] - Inorganic Carbon Dissolved
 
 print('************** AD_OCS_Model OK *******************')
@@ -72,26 +81,13 @@ for x in range(len(t_span)):
     q_M[x] = k[5]*mu2[x]*X2[x]                                   # [mmol/L/d] - CH4 Outlet Molar Flow
     pH[x]  = np.real(-np.log10(Kb*CO2[x]/B[x]))                  # [-]        - System pH
 
-q_tot = q_C + q_M                                                   # [mmol/L/d] - Outlet global molar flow  
-
-# Compute Mass Flows
-
-q_C_W   = q_C*44/1000                                            # [g/L/d]    - CO2 Outlet mass flow of
-q_M_W   = q_M*16/1000                                            # [g/L/d]    - CH4 Outlet mass flow  
-q_tot_W = q_C_W + q_M_W                                          # [g/L/d]    - Outlet global mass flow  
-x_M_W   = q_M_W/q_tot_W                                          # [-]        - CH4 Weight Fraction      
-
-y_M   = np.divide(q_M,q_tot)                                     # [-]        - CH4 Mole fraction in gas phase
-y_C   = np.divide(q_C,q_tot)                                     # [-]        - CO2 Mole fraction in gas phase
+q_tot = q_C + q_M                                                # [mmol/L/d] - Outlet global molar flow  
 
 # Sulfur and Oxygen Influence Evaluation
 
-q_O2   = np.zeros(len(t_span))                                   # [mmol/L/d] - O2 Outlet Molar Flow
-r_O2   = np.zeros(len(t_span))                                   # [mmol/L/d] - Reaction rate O2-H2S
-
 Xs     = np.zeros(len(t_span))                                   # [g/L]      - Sulfate Reducing Bacteria
 Ss     = np.zeros(len(t_span))                                   # [mmol/L]      - Sulfur dissolved
-y_S    = np.zeros(len(t_span))                                   # [-]        - Sulfur Mole fraction in gas phase
+y_S = np.zeros(len(t_span))                                   # [-]        - Sulfur Mole fraction in gas phase
 Ss_max = np.zeros(len(t_span))                                   # [mmol/L]      - Maximum Sulfur dissolved concentration
 Xs_max = np.zeros(len(t_span))                                   # [g/L]      - Maximum Sulfate Reducing Bacteria concentration (Gompertz Asymptote)
 mu_srb = np.zeros(len(t_span))                                   # [g/L/d]    - Gompertz parameter for SRB growth
@@ -102,7 +98,7 @@ lam = 0                                                         # [-]        - L
 
 for j in range(len(t_span)):
     # Iterate over each time step
-
+    
     Ss_max[j] = frac_sulfur*y_influent[j,4]*1000/64*S2[j]/y_influent[0,4]
     Xs_max[j] = Y_srb/(1-Y_srb)*Ss_max[j]     
     
@@ -118,82 +114,99 @@ for j in range(len(t_span)):
     
         growth_rate[j] = np.nanmax(dXsdt[j])                                  # [g/L/d]    - Get the growth rate of SRB at each time step as the maximum of the possible rates
 
-    y_S[j]   = (H_S*Ss[j])/1                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
+    y_S[j]   = (KH_S*Ss[j])/P_dig                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
 
 
-# print(f'mu_srb: {mu_srb}')
-# print(f'Xs_max: {Xs_max}')
-# print(f'mu1,max: {mu1_max}; Ks1:  {KS1}; Cd1: {C_d[0]}')
-# print(f'mu2,max: {mu2_max}; Ks2:  {KS2}; KI2: {KI2}; Cd2: {C_d[1]}')
-# print(f"Mole fractions in the gas at the end: CH4: {y_M[-1]}, CO2 {y_C[-1]}")
-# print(f"Mass fraction of methane in the gas at the end",float(x_M_W[-1]))
+#### Evaluation of the G/L equilibrium effects on the system ####
+F_W = water_percentage*Q_in*rho_water/18                      # [kmol/d]    - Water Flow  
+F_W = F_W*1000                                                # [mol/d]     - Water Flow
 
-# Recalculation of y_i and flows
-y_sum = y_M + y_C + y_S
+q_S = y_S*q_tot                                               # [mmol/L/d] - Sulfur Outlet Specific Molar Flow
 
-y_M_new = y_M/y_sum                                               # [-]        - Untreated CH4 Mole fraction in gas phase
-y_C_new = y_C/y_sum                                               # [-]        - Untreated CO2 Mole fraction in gas phase
-y_S_new = y_S/y_sum                                               # [-]        - Untreated Sulfur Mole fraction in gas phase
+F_M = q_M*V_liq                                               # [mol/d]   - Methane Flow 
+F_C = q_C*V_liq                                               # [mol/d]   - CO2 Flow
+F_S = q_S*V_liq                                               # [mol/d]   - Sulfur Flow
+n_species = 4                                                 # [-]       - Number of species in the system
 
-q_M_new = y_M_new*q_tot
-q_C_new = y_C_new*q_tot
-q_S_new = y_S_new*q_tot
+F_i = np.zeros([len(t_span),n_species])                       # [-] - Outlet Molar Fraction - In of the flash
+for t in range(len(t_span)):
+    F_i[t] = np.array([F_M[t], F_C[t], F_S[t], F_W])            # [mol/d] - Outlet Molar Flow - In of the flash
 
-q_S_new_1 = np.zeros(len(t_span))                                   # [mmol/L/d] - S Outlet Molar Flow
-for i in range(len(t_span)):
-    r_O2[i] = 8*(y_S_new[i])**(-3)                                                        # [mmol/L/d] - Reaction rate O2-H2S (Gas Phase)
-    q_O2[i] = q_O2_in - r_O2[i]                                                # [mmol/L/d] - O2 Outlet Molar Flow (Gas Phase)
-    q_S_new_1[i] = q_S_new[i] - r_O2[i]                                 # [mmol/L/d] - Sulfur Outlet Molar Flow (Gas Phase)
+z_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - In of the flash
+x_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - Liquid phase of the flash
+y_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - Vapor phase of the flash
 
-y_out_O2 = q_O2/q_tot
-y_out_S = q_S_new_1/q_tot
-y_out_sum = y_M_new + y_C_new + y_out_S + y_out_O2
-y_out_O2 = y_out_O2/y_out_sum
-y_out_S = y_out_S/y_out_sum
-y_out_M = y_M_new/y_out_sum
-y_out_C = y_C_new/y_out_sum
+K = np.zeros([len(t_span),n_species])                         # [-] - Equilibrium Constant
+num = np.zeros([len(t_span),n_species])                       # [-] - Numerator of the equilibrium equation
+den = np.zeros([len(t_span),n_species])                       # [-] - Denominator of the equilibrium equation
 
-q_out_M = y_out_M*q_tot
-q_out_C = y_out_C*q_tot
-q_out_S = y_out_S*q_tot
-q_out_O2 = y_out_O2*q_tot
+N_L = np.zeros([len(t_span),n_species])                                   # [-] - Liquid Phase Mole Fraction
+N_V = np.zeros([len(t_span),n_species])                                   # [-] - Vapor Phase Mole Fraction
 
+alpha = np.zeros(len(t_span))                                 # [-]     - 
+law = ('H', 'H', 'H', 'R')                                    # [-]     - Define the law to be used for the equilibrium calculation (R for Raoult's Law, H for Henry's Law)
+for t in range(len(t_span)):  
+    F_in = sum(F_i[t])                                        # [mol/d] - Total Inlet Molar Flow
+    for i in range(n_species):        
+        if law[i] == 'R':
+            P_sp = P_sat[i]
+        else:
+            P_sp = H_atm[i]             
+        K[t,i] = P_sp/P_dig
+        z_i[t,i] = F_i[t,i]/F_in
+        num[t,i] = z_i[t,i]*(K[t,i]-1)
+        den[t,i] = K[t,i]-1
+    
+    # sum_num = sum(num[t])
+    # den_prod = np.prod(den[t])
+    # # print(z_i[t,0], z_i[t,1], z_i[t,2], z_i[t,3])
+    # alpha[t] = -(n_species-1)*sum_num/den_prod
+    
+
+    guess = sum(z_i[t,0:2])
+    alpha[t] = fsolve(f_RR_equilibrium, guess , args=(z_i[t,:], law, P_sat, H_atm, P_dig)) # [-] - Solve the G/L equilibrium for the alpha factor
+    N_V_tot = F_in*alpha[t]                                       # [mol/d] - Vapor Molar Flow
+    N_L_tot = F_in - N_V_tot                                          # [mol/d] - Liquid Molar Flow
+    for i in range(n_species):
+        x_i[t,i] = z_i[t,i]/(1+alpha[t]*(K[t,i]-1))
+        y_i[t,i] = K[t,i]*x_i[t,i]
+        N_L[t,i] = N_L_tot*x_i[t,i]
+        N_V[t,i] = N_V_tot*y_i[t,i]
+
+entrance = sum(F_i[0,0:2])
+out = sum(N_V[0,0:2])
+delta = entrance - out
+print('Entrance: ', entrance)
+print('Out: ', out)
+print('Delta: ', delta)
+print('Relative Error: ', delta/entrance*100,'%')
+
+
+print(N_V[0])
+print(N_L[0])
+
+print('alpha',alpha[0])
+print('Liquid:', x_i[0,:])
+print('Vapour:',y_i[0,:])
 plt.figure()
-plt.plot(t_span, y_out_M, label='CH4')
-plt.plot(t_span, y_out_C, label='CO2')
-plt.plot(t_span, y_out_S, label='S')
-plt.plot(t_span, y_out_O2, label='O2')
+plt.subplot(2,1,1)
+plt.plot(t_span, x_i[:,0], label='Methane')
+plt.plot(t_span, x_i[:,1], label='CO2')
+plt.plot(t_span, x_i[:,2], label='Sulfur')
+plt.plot(t_span, x_i[:,3], label='Water')
 plt.legend()
-
-plt.figure(2)
-
-plt.subplot(2,2,1)
-plt.plot(t_span, q_M_new, 'r--','--')
-plt.plot(t_span, q_C_new, 'k--','--')
-plt.plot(t_span, q_S_new, 'y--','--')
-plt.plot(t_span,q_out_M,'r',label="CH4")
-plt.plot(t_span,q_out_C,'k',label="CO2")
-plt.plot(t_span,q_out_S,'y',label="H2S")
-plt.plot(t_span,q_out_O2,'b',label="O2")
+plt.xlabel('Time [d]')
+plt.ylabel('Molar Fraction [-]')
+plt.title('Liquid Phase')
+plt.subplot(2,1,2)
+plt.plot(t_span, y_i[:,0], label='Methane')
+plt.plot(t_span, y_i[:,1], label='CO2')
+plt.plot(t_span, y_i[:,2], label='Sulfur')
+plt.plot(t_span, y_i[:,3], label='Water')
 plt.legend()
-
-plt.subplot(2,2,2)
-plt.plot(t_span, q_S_new, 'y--','--')
-plt.plot(t_span,q_out_S,'y',label="H2S")
-plt.plot(t_span,q_out_O2,'b',label="O2")
-plt.legend()
-
-plt.subplot(2,2,3)
-plt.plot(t_span, r_O2)
-plt.ylabel('Reaction Rate [mmol/L/d]')
+plt.xlabel('Time [d]')
+plt.ylabel('Molar Fraction [-]')
+plt.title('Vapor Phase')
 
 plt.show()
-q_C_w = q_C_up*MW_co/1000                                               # [g/L/d]    - CO2 Outlet mass flow of
-q_M_w = q_M_up*MW_met/1000                                              # [g/L/d]    - CH4 Outlet mass flow  
-q_S_W = q_S_up*MW_H2S/1000                                              # [g/L/d]    - CH4 Outlet mass flow  
-q_w_tot = q_C_w+q_M_w+q_S_w
-
-x_M_w = q_M_w/q_w_tot                                                    # [-]        - CH4 Weight Fraction
-x_C_w = q_C_w/q_w_tot                                                    # [-]        - CO2 Weight Fraction
-x_S_w = q_S_w/q_w_tot                                                    # [-]        - H2S Weight Fraction
 
