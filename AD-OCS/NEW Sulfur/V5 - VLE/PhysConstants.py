@@ -11,10 +11,12 @@ MW_APr = 74.08                       # [g/mol] Propionic Acid
 MW_AAc = 60.052                      # [g/mol] Acetic Acid
 MW_ABu = 88.11                       # [g/mol] Butyric Acid
 MW_APe = 102.13                      # [g/mol] Pentanoic Acid
-MW_co  = 44                          # [g/mol] CO2
-MW_met = 16                          # [g/mol] CH4
-MW_H2S = 34                          # [g/mol] H2S
-MW_O2  = 32                          # [g/mol] O2
+MW_C  = 44                          # [g/mol] CO2
+MW_M = 16                          # [g/mol] CH4
+MW_S = 34                          # [g/mol] H2S
+MW_O  = 32                          # [g/mol] O2
 
-MW_gas  = [MW_met,MW_co,MW_H2S]
+MW_gas  = [MW_M, MW_C, MW_S, MW_O]
 Y_srb  = 0.0342*64/1000               # [g/mmol] Yield 
+
+rho_water = 997                    # [kg/m^3] Density of water 

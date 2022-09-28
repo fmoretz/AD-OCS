@@ -1,9 +1,9 @@
 ''' AD_OCS Model with sulfur addition and oxygen implementation
-    Version 3.2: Headspace divided in two regions: 
-        1. intephase, where H2S is in equilibrium with the liquid;
-        2. gas phase, where Oxygen is present and reacts with H2S.
-    Version 3.3: Relation of concentrations for kinetics of H2S oxidation
-    Version 3.3.1: Fluxes in [mol/d] instead of [mmol/d]'''
+    Version 4.2: Headspace divided in two regions: 
+        - intephase, where H2S is in equilibrium with the liquid;
+        - gas phase, where Oxygen is present and reacts with H2S.
+    Version 4.3: Relation of concentrations for kinetics of H2S oxidation
+    Version 4.3.1: Fluxes in [mol/d] instead of [mmol/d]'''
 
    
 import time
@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from SS_Algebraic import*
 from Influent import*
 
-from functions_V3 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviations, deviations_check
+from functions_V4 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviations, deviations_check
 
 # System definition
 d_start = 10        # [d] - Start time
@@ -45,7 +45,7 @@ print('************** AMOCOHN OK *******************')
 # Ode Integration of the AD_OCS_Model: uses the previous X2 to get rho
 # --------------------------------------------------------------------------------------------
 
-y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[5], SSTATE[6]] # initial conditions esxkcdlished from SS
+y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions esxkcdlished from SS
 
 YOUT = odeint(AD_OCS_Model, y0, t_span, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span))
 
@@ -56,8 +56,7 @@ X2 = YOUT[:,2]              # [g/L]    - Methanogenic Bacteria
 Z  = YOUT[:,3]              # [mmol/L] - Total Alkalinity
 S1 = YOUT[:,4]              # [g/L]    - Organic Soluble Substrate
 S2 = YOUT[:,5]              # [mmol/L] - VFA dissolved
-S2_new = YOUT[:,6]          # [mmol/L] - VFA dissolved
-C  = YOUT[:,7]              # [mmol/L] - Inorganic Carbon Dissolved
+C  = YOUT[:,6]              # [mmol/L] - Inorganic Carbon Dissolved
 
 print('************** AD_OCS_Model OK *******************')
 
@@ -121,7 +120,7 @@ for j in range(len(t_span)):
     
         growth_rate[j] = np.nanmax(dXsdt[j])                                  # [g/L/d]    - Get the growth rate of SRB at each time step as the maximum of the possible rates
 
-    y_S_int[j]   = (H_S*Ss[j])/P_dig                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
+    y_S_int[j]   = (KH_S*Ss[j])/P_dig                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
 
 
 # Recalculation of y_i and flows by normalization - Version 1
@@ -153,7 +152,7 @@ coeff_S = -2
 coeff_O2 = -0.8
 alfa = 1
 beta = 0.4
-k_SOB = 2
+k_SOB = 20
 
 # Vectors allocation
 y_M = np.zeros(len(t_span))
@@ -269,7 +268,7 @@ plt.ylabel('Mass Fraction')
 
 
 plt.figure(2)
-plt.suptitle('Out flows and moalr fractions with normalization effect (dotted lines)')
+plt.suptitle('Out flows and molar fractions with normalization effect (dotted lines)')
 
 plt.subplot(2,1,1)
 plt.title('Outlet Gas Molar Flow')
