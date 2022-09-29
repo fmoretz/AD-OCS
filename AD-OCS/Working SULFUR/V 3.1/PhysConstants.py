@@ -1,4 +1,6 @@
 # Physical Constants
+import numpy as np
+
 Rgas_L_atm_K = 0.08205746 # L*atm/(mol*K)
 Rgas_J_mol_K = 8.3144598 # J/(mol*K)
 Rgas_m3_atm_K = 0.08205746e-3 # m^3*atm/(mol*K)

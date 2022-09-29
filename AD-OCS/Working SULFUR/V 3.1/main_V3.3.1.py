@@ -121,7 +121,7 @@ for j in range(len(t_span)):
     
         growth_rate[j] = np.nanmax(dXsdt[j])                                  # [g/L/d]    - Get the growth rate of SRB at each time step as the maximum of the possible rates
 
-    y_S_int[j]   = (H_S*Ss[j])/P_dig                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
+    y_S_int[j]   = (KH_S*Ss[j])/P_dig                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
 
 
 # Recalculation of y_i and flows by normalization - Version 1
@@ -153,7 +153,7 @@ coeff_S = -2
 coeff_O2 = -0.8
 alfa = 1
 beta = 0.4
-k_SOB = 2
+k_SOB = 20
 
 # Vectors allocation
 y_M = np.zeros(len(t_span))
@@ -269,7 +269,7 @@ plt.ylabel('Mass Fraction')
 
 
 plt.figure(2)
-plt.suptitle('Out flows and moalr fractions with normalization effect (dotted lines)')
+plt.suptitle('Out flows and molar fractions with normalization effect (dotted lines)')
 
 plt.subplot(2,1,1)
 plt.title('Outlet Gas Molar Flow')

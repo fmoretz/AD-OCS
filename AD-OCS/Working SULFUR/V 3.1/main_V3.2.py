@@ -117,7 +117,7 @@ for j in range(len(t_span)):
     
         growth_rate[j] = np.nanmax(dXsdt[j])                                  # [g/L/d]    - Get the growth rate of SRB at each time step as the maximum of the possible rates
 
-    y_S_int[j]   = (H_S*Ss[j])/1                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
+    y_S_int[j]   = (KH_S*Ss[j])/1                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
 
 
 # Recalculation of y_i and flows by normalization - Version 1

@@ -114,21 +114,12 @@ for j in range(len(t_span)):
     for snapshot in range(len(t_span)):
         
         mu_srb_loc = np.nan_to_num((- X2[0] + X2[snapshot])/(t_span[snapshot] - t_span[0]), nan=0, neginf=0)    # [g/L/d]    - Gompertz parameter for SRB growth, local  
-        dXsdt[j, snapshot] = growth_SRB(t_span[snapshot], Xs_max[j], mu_srb_loc, lam)                     # [g/L/d]    - SRB growth rate matrix, local (Gompertz Derivative)
+        dXsdt[j, snapshot] = growth_SRB(t_span[snapshot], Xs_max[j], mu_srb_loc, lam)                           # [g/L/d]    - SRB growth rate matrix, local (Gompertz Derivative)
     
         growth_rate[j] = np.nanmax(dXsdt[j])                                  # [g/L/d]    - Get the growth rate of SRB at each time step as the maximum of the possible rates
 
-    y_S[j]   = (H_S*Ss[j])/1                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
+    y_S[j]   = (KH_S*Ss[j])/P_dig                                    # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
 
-
-# print(f'mu_srb: {mu_srb}')
-# print(f'Xs_max: {Xs_max}')
-# print(f'mu1,max: {mu1_max}; Ks1:  {KS1}; Cd1: {C_d[0]}')
-# print(f'mu2,max: {mu2_max}; Ks2:  {KS2}; KI2: {KI2}; Cd2: {C_d[1]}')
-# print(f"Mole fractions in the gas at the end: CH4: {y_M[-1]}, CO2 {y_C[-1]}")
-# print(f"Mass fraction of methane in the gas at the end",float(x_M_W[-1]))
-
-# Recalculation of y_i and flows
 y_sum = y_M + y_C + y_S
 
 y_M_new = y_M/y_sum                                               # [-]        - Untreated CH4 Mole fraction in gas phase
@@ -141,8 +132,8 @@ q_S_new = y_S_new*q_tot
 
 q_S_new_1 = np.zeros(len(t_span))                                   # [mmol/L/d] - S Outlet Molar Flow
 for i in range(len(t_span)):
-    r_O2[i] = 8*(y_S_new[i])**(-3)                                                        # [mmol/L/d] - Reaction rate O2-H2S (Gas Phase)
-    q_O2[i] = q_O2_in - r_O2[i]                                                # [mmol/L/d] - O2 Outlet Molar Flow (Gas Phase)
+    r_O2[i] = 8*(y_S_new[i])**(-3)                                                      # [mmol/L/d] - Reaction rate O2-H2S (Gas Phase)
+    q_O2[i] = q_O2_in - r_O2[i]                                         # [mmol/L/d] - O2 Outlet Molar Flow (Gas Phase)
     q_S_new_1[i] = q_S_new[i] - r_O2[i]                                 # [mmol/L/d] - Sulfur Outlet Molar Flow (Gas Phase)
 
 y_out_O2 = q_O2/q_tot
