@@ -106,11 +106,18 @@ for j in range(len(t_span)):
     Xs_max[j] = Y_srb/(1-Y_srb)*Ss_max[j]     
     
     # Gompertz function for microbial population and dissolved sulfur
+<<<<<<< HEAD
         mu_srb[j] = (- X2[0] + X2[j])/(t_span[j] - t_span[0])             # [g/L/d]    - Gompertz parameter for SRB growth
     Xs[j]  = gompertz(t_span[j], Xs_max[j], mu_srb[j], lam)           # [g/L]      - Sulfate Reducing Bacteria - Gompertz
     Ss[j]  = Xs[j]*(1-Y_srb)/(Y_srb)                                  # [g/L]      - Sulfur dissolved concentration
         
 
+=======
+    Xs[j]  = gompertz(t_span[j], Xs_max[j], mu_srb[j], lam)           # [g/L]      - Sulfate Reducing Bacteria - Gompertz
+    Ss[j]  = Xs[j]*(1-Y_srb)/(Y_srb)                                  # [g/L]      - Sulfur dissolved concentration
+        
+    mu_srb[j] = (- X2[0] + X2[j])/(t_span[j] - t_span[0])             # [g/L/d]    - Gompertz parameter for SRB growth
+>>>>>>> 18add2a1b6ecd358807918579ce9cdfb743349f6
     for snapshot in range(len(t_span)):
         
         mu_srb_loc = np.nan_to_num((- X2[0] + X2[snapshot])/(t_span[snapshot] - t_span[0]), nan=0, neginf=0)    # [g/L/d]    - Gompertz parameter for SRB growth, local  

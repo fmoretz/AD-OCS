@@ -105,6 +105,7 @@ for j in range(len(t_span)):
     Xs_max[j] = Y_srb/(1-Y_srb)*Ss_max[j]     
     
     # Gompertz function for microbial population and dissolved sulfur
+<<<<<<< HEAD
     mu_srb[j] = (- X2[0] + X2[j])/max(1e-14,t_span[j]-t_span[0])            # [g/L/d]    - Gompertz parameter for SRB growth
     Xs[j]  = gompertz(t_span[j], Xs_max[j], mu_srb[j], lam)           # [g/L]      - Sulfate Reducing Bacteria - Gompertz
     Ss[j]  = Xs[j]*(1-Y_srb)/(Y_srb)                                  # [g/L]      - Sulfur dissolved concentration
@@ -112,6 +113,15 @@ for j in range(len(t_span)):
     for snapshot in range(len(t_span)): # this ruotine is used just to show the growth rate of SRB which intervenes in the ODE
         
         mu_srb_loc = np.nan_to_num((- X2[0] + X2[snapshot])/max(1e-14,(t_span[snapshot] - t_span[0])), nan=0, neginf=0)    # [g/L/d]    - Gompertz parameter for SRB growth, local  
+=======
+    Xs[j]  = gompertz(t_span[j], Xs_max[j], mu_srb[j], lam)           # [g/L]      - Sulfate Reducing Bacteria - Gompertz
+    Ss[j]  = Xs[j]*(1-Y_srb)/(Y_srb)                                  # [g/L]      - Sulfur dissolved concentration
+        
+    mu_srb[j] = (- X2[0] + X2[j])/(t_span[j] - t_span[0])             # [g/L/d]    - Gompertz parameter for SRB growth
+    for snapshot in range(len(t_span)):
+        
+        mu_srb_loc = np.nan_to_num((- X2[0] + X2[snapshot])/(t_span[snapshot] - t_span[0]), nan=0, neginf=0)    # [g/L/d]    - Gompertz parameter for SRB growth, local  
+>>>>>>> 18add2a1b6ecd358807918579ce9cdfb743349f6
         dXsdt[j, snapshot] = growth_SRB(t_span[snapshot], Xs_max[j], mu_srb_loc, lam)                           # [g/L/d]    - SRB growth rate matrix, local (Gompertz Derivative)
     
         growth_rate[j] = np.nanmax(dXsdt[j])                                  # [g/L/d]    - Get the growth rate of SRB at each time step as the maximum of the possible rates
@@ -146,14 +156,22 @@ plt.ylabel('Mole Fraction [-]')
 
 plt.figure()
 plt.suptitle('Sulfur Kinetics')
+<<<<<<< HEAD
 plt.subplot(4,1,1)
 plt.plot(t_span, Xs, label='SRB')
 plt.ylabel(ylabel='Concentration [g/L]')
 plt.subplot(4,1,2)
+=======
+plt.subplot(3,1,1)
+plt.plot(t_span, Xs, label='SRB')
+plt.ylabel(ylabel='Concentration [g/L]')
+plt.subplot(3,1,2)
+>>>>>>> 18add2a1b6ecd358807918579ce9cdfb743349f6
 plt.plot(t_span, Ss, label='Sulfur')
 plt.plot(t_span, Ss_max, '--', label='Sulfur Max')
 plt.legend()
 plt.ylabel('Concentration [mmol/L]')
+<<<<<<< HEAD
 plt.subplot(4,1,3)
 plt.plot(t_span, growth_rate, label='Growth Rate')
 plt.ylabel('Growth Rate [g/L/d]')
@@ -163,6 +181,12 @@ plt.plot(t_span, mu_srb, label='Gompertz Parameter')
 plt.ylabel('Gompertz Parameter [g/L/d]')
 plt.legend()
 
+=======
+plt.subplot(3,1,3)
+plt.plot(t_span, growth_rate, label='Growth Rate')
+plt.ylabel('Growth Rate [g/L/d]')
+plt.legend()
+>>>>>>> 18add2a1b6ecd358807918579ce9cdfb743349f6
 
 plt.figure()
 plt.suptitle('Sulfur Kinetics effect son S2')
