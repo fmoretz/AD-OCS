@@ -1,5 +1,5 @@
-''' AD_OCS Model with sulfur addition and oxygen implementation
-    First draft vesion: No reaction and recalculation of the variable aftewards'''
+''' AD_OCS Model with VLE ideal '''
+
 
 
 import math
@@ -12,7 +12,7 @@ from SS_Algebraic import*
 from Influent import*
 from GLConstants import*
 
-from functions_V4 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviations, deviations_check
+from functions_V5 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviations, deviations_check
 from GL_Equilibrium import f_RR_equilibrium
 # Oxygen test
 # System definition
@@ -55,7 +55,7 @@ X2 = YOUT[:,2]              # [g/L]    - Methanogenic Bacteria
 Z  = YOUT[:,3]              # [mmol/L] - Total Alkalinity
 S1 = YOUT[:,4]              # [g/L]    - Organic Soluble Substrate
 S2 = YOUT[:,5]              # [mmol/L] - VFA dissolved
-C  = YOUT[:,7]              # [mmol/L] - Inorganic Carbon Dissolved
+C  = YOUT[:,6]              # [mmol/L] - Inorganic Carbon Dissolved
 
 print('************** AD_OCS_Model OK *******************')
 
@@ -103,13 +103,14 @@ for j in range(len(t_span)):
     Xs_max[j] = Y_srb/(1-Y_srb)*Ss_max[j]     
     
     # Gompertz function for microbial population and dissolved sulfur
+    mu_srb[j] = (- X2[0] + X2[j])/max(1e-14,t_span[j]-t_span[0])   
     Xs[j]  = gompertz(t_span[j], Xs_max[j], mu_srb[j], lam)           # [g/L]      - Sulfate Reducing Bacteria - Gompertz
     Ss[j]  = Xs[j]*(1-Y_srb)/(Y_srb)                                  # [g/L]      - Sulfur dissolved concentration
         
-    mu_srb[j] = (- X2[0] + X2[j])/(t_span[j] - t_span[0])             # [g/L/d]    - Gompertz parameter for SRB growth
+            # [g/L/d]    - Gompertz parameter for SRB growth
     for snapshot in range(len(t_span)):
         
-        mu_srb_loc = np.nan_to_num((- X2[0] + X2[snapshot])/(t_span[snapshot] - t_span[0]), nan=0, neginf=0)    # [g/L/d]    - Gompertz parameter for SRB growth, local  
+        mu_srb_loc = np.nan_to_num((- X2[0] + X2[snapshot])/max(1e-14,(t_span[snapshot] - t_span[0])), nan=0, neginf=0)    # [g/L/d]    - Gompertz parameter for SRB growth, local  
         dXsdt[j, snapshot] = growth_SRB(t_span[snapshot], Xs_max[j], mu_srb_loc, lam)                     # [g/L/d]    - SRB growth rate matrix, local (Gompertz Derivative)
     
         growth_rate[j] = np.nanmax(dXsdt[j])                                  # [g/L/d]    - Get the growth rate of SRB at each time step as the maximum of the possible rates
