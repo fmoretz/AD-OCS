@@ -1,6 +1,6 @@
 import numpy as np
 
-from GLConstants import *
+from TMD_properties import *
 from PhysConstants import*
 from dataimport import*
 from ReactorConf import*
@@ -31,9 +31,10 @@ XT_in = float(T2["XTin"])                              # [g/L]    - Particulate 
 B_in  = Kb*C_in/(Kb+10**(-pH_in))
 Z_in  = B_in + S2_in*Ka/(Ka+10**(-pH_in))+N_in
 
-y_in_0  = np.array([S1_in, S2_in, C_in, Z_in, XT_in])
 
 # Flowrates
-Q_in = D*V_liq  # [m3/d] - Influent flowrate
+Q_in_0 = 170            # [m3/d] - Influent flowrate
+water_percentage= 0.97  # [-]    - Fraction standing for percentage of water in the influent
 
-
+# Get the array of the influent concentrations and flowrate
+y_in_0  = np.array([S1_in, S2_in, C_in, Z_in, XT_in, Q_in_0])

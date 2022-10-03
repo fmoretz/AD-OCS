@@ -190,11 +190,6 @@ for t in range(len(t_span)):
         K[t,i] = P_sp/P_dig
         z_i[t,i] = F_i[t,i]/F_in
             
-    # sum_num = sum(num[t])
-    # den_prod = np.prod(den[t])
-    # # print(z_i[t,0], z_i[t,1], z_i[t,2], z_i[t,3])
-    # alpha[t] = -(n_species-1)*sum_num/den_prod    
-
     guess = sum(z_i[t,0:2])
     alpha[t] = fsolve(f_RR_equilibrium, guess , args=(z_i[t,:], law, P_sat, H_atm, P_dig)) # [-] - Solve the G/L equilibrium for the alpha factor
     N_V_tot = F_in*alpha[t]                                       # [mol/h] - Vapor Molar Flow

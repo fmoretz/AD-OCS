@@ -2,6 +2,19 @@
 
 from Influent import*
 
+# Level dynamics function
+def level_t(t, D, Qin, SR, h0, t_change):
+    ''' 
+    Function that returns the values of the liquid level at each time t.
+    h0 [m] is the initial level
+    t_change [h] is the time of the change in the influent flow - starts from zero
+    D [1/d] - Dilution Rate
+    Qin [m3/d] - Influent flow
+    SR [m2] - Surface of the reactor
+    '''
+    t_loc = t-t_change # [h] - Time from the start of the change
+    return h0*np.exp(-D/24*t_loc) + (1-np.exp(-D/24*t_loc))*Qin/(D*SR)
+
 def gompertz(x,a,b,c):                                                                      # Gompertz function
     return a*np.exp(-np.exp(b*np.exp(1)/a*(c-x) - 1))
 
@@ -10,11 +23,11 @@ def growth_SRB(x,a,b,c):                                                        
 
 def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_change_vett, X2_pre, t_span):   # Model deviations function
     '''Main function used in the code: represents the AD-OCS model equations to be integrated'''   
-    XT, X1, X2, Z, S1, S2, S2_new, C = x
+    XT, X1, X2, Z, S1, S2, C = x
     
     XT_in_0 = y_in_0[4]         # Initial value of the influent particulate
     X2_0 = X2_pre[0]            # Initial value of the biomass 2 from the previous simulation
-    y_influent = deviations_check(t, y_in, t_change_vett) # Evaluate the influent deviations with ane external function
+    y_influent = deviations_check(t, y_in, t_change_vett) # Evaluate the influent deviations with an external function
     
     S1in = y_influent[0]      # [gCOD/L]
     S2in = y_influent[1]      # [mmol/L]
@@ -60,10 +73,9 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
     dZ  = D*(Zin - Z) + (k[0]*N_S1 - N_bac)*mu1*X1 - N_bac*mu2*X2 + kd[0]*N_bac*X1 + kd[1]*N_bac*X2  # Evolution of alcalinity;
     dS1 = D*(S1in - S1) - k[0]*mu1*X1 + k[6]*XT                                                      # Evolution of organic substrate
     dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2                                                  # Evolution of VFA
-    dS2_new = D*(S2in - S2_new) + k[1]*mu1*X1 - k[2]*mu2*X2 - rho_srb/Y_srb                          # Evolution of VFA - affected by sulfur
     dC  = D*(Cin - C)   + k[3]*mu1*X1 + k[4]*mu2*X2 - qC                                             # Evolution of inorganic carbon
 
-    dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dS2_new,  dC]
+    dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dC]
     
     return dxdt
 
@@ -107,17 +119,20 @@ def f_deviations(t_span, t_change_vett, y_in_0):
     '''
     Function to be called in the main code.
     It returns the values of the deviated influents at each time t.
+    Needs: 
+    - t_span: time span of the simulation
+    - t_change_vett: vector of the times at which the influent changes, defined by excel spreadsheet
+    - y_in_0: vector of the initial values of the influent [S1in, S2in, Cin, Zin, XTin, Qin] and their measure units
+    - Matrix T3: matrix of the deviations to be applied to the influent, derived from the Excel spreadsheet
     '''
     y_influent = np.zeros((len(t_span), len(y_in_0))) # Defines the y_in values which will be used in the main
 
     index = 0
     t_change_loc = t_change_vett[index]                # Get the time when the first deviation is applied
     scale_loc    = np.ones(len(y_in_0))    # Get the scale values for the first time change
-
-    
+   
     for i in range(len(t_span)):
         t = t_span[i]
-
         while True:
             if t < t_change_loc:        
                 y_influent[i] = y_in_0*scale_loc

@@ -2,7 +2,10 @@ import numpy as np
 
 from Influent import*
 from Identification import*
+def level_SS(t, D, Qin, SR, h0, t_change): 
 
+  t_loc = t-t_change 
+  return h0*np.exp(-D/24*t_loc) + (1-np.exp(-D/24*t_loc))*Qin/(D*SR)
 
 mu1_SS = alfa*D + kd[0]
 mu2_SS = alfa*D + kd[1]
@@ -34,6 +37,10 @@ q_C_SS  = kLa*(CO2_SS - KH*Pc_SS);
 
 SSTATE  = [XT_SS, X1_SS, X2_SS, Z_SS, S1_SS, S2_SS, C_SS, CO2_SS, Pc_SS, q_M_SS, q_C_SS];
 
+
+h_SS = level_SS(1000*24, D, Q_in_0, SR, 0.1, 0)
+
+
 print('\n STEADY STATE VALUES \n')
 print('S.S. of XT  ', float(XT_SS))
 print('S.S. of X1  ', float(X1_SS))
@@ -46,3 +53,4 @@ print('S.S. of CO2 ', float(CO2_SS))
 print('S.S. of Pc  ', float(Pc_SS))
 print('S.S. of q_M ', float(q_M_SS))
 print('S.S. of q_C ', float(q_C_SS))
+print('S.S. of h   ', float(h_SS))

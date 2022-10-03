@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
 
-def f_RR_equilibrium(alpha, *args):
+def f_RR_ideal(alpha, *args):
     # Unpack the arguments
     z, law, P_sat, H, P = args
     RR = np.zeros(len(z))  
@@ -20,3 +20,5 @@ def f_RR_equilibrium(alpha, *args):
 
     RR_eqn = sum(RR)
     return RR_eqn
+
+f_RR_ideal(alpha)

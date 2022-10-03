@@ -14,9 +14,13 @@ MW_APe = 102.13                      # [g/mol] Pentanoic Acid
 MW_C  = 44                          # [g/mol] CO2
 MW_M = 16                          # [g/mol] CH4
 MW_S = 34                          # [g/mol] H2S
-MW_O  = 32                          # [g/mol] O2
+MW_O  = 32                         # [g/mol] O2
+MW_W = 18.015                     # [g/mol] H2O
 
 MW_gas  = [MW_M, MW_C, MW_S, MW_O]
 Y_srb  = 0.0342*64/1000               # [g/mmol] Yield 
 
-rho_water = 997                    # [kg/m^3] Density of water 
+rho_W = 997                    # [kg/m^3] Density of water 
+rho_M = 0.627                     # [kg/m^3] Density of Methane (engineering toolbox)
+rho_C = 1.724                     # [kg/m^3] Density of CO2 (engineering toolbox)
+rho_S = 1.505                     # [kg/m^3] Density of H2S (engineering toolbox)
