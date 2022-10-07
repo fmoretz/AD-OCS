@@ -25,5 +25,3 @@ KH = 1/(H_C_atm/55342)                                                 # [mmol/L
 H_S_atm  = (0.1367719*T + 2.0180702)*100             # [atm]        - Henry's constant H2S at [T]°C - Partial Pressure Relation: Linear regression on Perry's data
 
 KH_S = H_S_atm/55342                             # [atm/(mol/m3)] - Henry's constant H2S at [T]°C - Concentrations Relation = [L*atm/mmol]
-print(H_S_atm)
-print(KH_S)

@@ -1,6 +1,7 @@
 ''' V5.0 AD_OCS Model with sulfur addition and VLE equilibrium
     V5.1 - Level: Level control of the digester
-    V5.2 - hourly: hourly control of the digester'''
+    V5.2 - hourly: hourly control of the digester
+    V5.3 - VLE: VLE equilibrium with Real gas properties'''
 
 import math
 from pprint import pprint as pp
@@ -19,16 +20,17 @@ from real_gas_mix import f_VL_realgas
 
 
 # System definition
-d_start = 0    # [h] - Start time
-d_end   = 60  # [h] - End time
-hours   = 1    # [h] - Discretization time
+d_start = 0       # [h] - Start time
+d_end   = 24      # [h] - End time
+hours   = 0.25    # [h] - Discretization time
 n_times = int((d_end-d_start)*hours) # Number of time steps
 
 print('***Intervals of {hours} hours. \n {n_times} time steps***'.format(hours=hours, n_times=n_times))
 
-t_span = np.linspace(d_start,d_end,n_times) # time span
+t_span = np.linspace(d_start,d_end,n_times) # time span [h]
+t_span_d = t_span/24 # time span [d]
 
-y_influent_changes = f_deviations(t_span, T3.index.values, y_in_0) # Get the deviated influent values at each timestamp
+y_influent_changes = f_deviations(t_span_d, T3.index.values, y_in_0) # Get the deviated influent values at each timestamp
 y_influent = y_influent_changes[:,0:5] # Remove the Q_in values
 
 Q_in = y_influent_changes[:,5] # Remove the y_in values
@@ -39,7 +41,7 @@ Q_in = y_influent_changes[:,5] # Remove the y_in values
 
 y0= [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions esxkcdlished from SS
 
-YOUT_pre = odeint(AMOCO_HN, y0, t_span, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values))
+YOUT_pre = odeint(AMOCO_HN, y0, t_span_d, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values))
 X2_pre = YOUT_pre[:,2]
 print('************** AMOCOHN OK *******************')
 
@@ -49,7 +51,7 @@ print('************** AMOCOHN OK *******************')
 
 y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions esxkcdlished from SS
 
-YOUT = odeint(AD_OCS_Model, y0, t_span, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span))
+YOUT = odeint(AD_OCS_Model, y0, t_span_d, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span))
 
 # Get results
 XT = YOUT[:,0]              # [gCOD/L] - Particulate 
@@ -96,8 +98,8 @@ Xs_max = np.zeros(len(t_span))                                   # [g/L]      - 
 mu_srb = np.zeros(len(t_span))                                   # [g/L/d]    - Gompertz parameter for SRB growth
 growth_rate = np.zeros(len(t_span))                              # [g/L/d]    - Gompertz derivative: states the growth rate of SRB
 
-dXsdt = np.zeros([len(t_span),len(t_span)])                     # [g/L/d]    - SRB growth rate matrix, preallocation
-lam = 0                                                         # [-]        - Lag Time as defined by Gompertz
+dXsdt = np.zeros([len(t_span),len(t_span)])                      # [g/L/d]    - SRB growth rate matrix, preallocation
+lam = 0                                                          # [-]        - Lag Time as defined by Gompertz
 
 for j in range(len(t_span)):
     # Iterate over each time step
@@ -160,10 +162,10 @@ F_S = np.zeros(len(t_span))                                   # [-] - Sulfur Flo
 F_W = np.zeros(len(t_span))                                   # [-] - Water Flow
 
 for i in range(len(t_span)):  
-    F_W[i] = water_percentage*Q_in[i]*rho_W/18*1000         # [mol/h]    - Water Flow 
-    F_M[i] = q_M[i]*V_liq[i]                                    # [mol/h]   - Methane Flow 
-    F_C[i] = q_C[i]*V_liq[i]                                    # [mol/h]   - CO2 Flow
-    F_S[i] = q_S[i]*V_liq[i]                                    # [mol/h]   - Sulfur Flow
+    F_W[i] = water_percentage*Q_in[i]*rho_W/18*1000/24            # [mol/h]    - Water Flow 
+    F_M[i] = q_M[i]*V_liq[i]/24                                # [mol/h]   - Methane Flow 
+    F_C[i] = q_C[i]*V_liq[i]/24                                # [mol/h]   - CO2 Flow
+    F_S[i] = q_S[i]*V_liq[i]/24                                # [mol/h]   - Sulfur Flow
 
     F_i[i] = np.array([F_M[i], F_C[i], F_S[i], F_W[i]])         # [mol/h] - Outlet Molar Flow - In of the flash
 
@@ -206,7 +208,10 @@ for t in range(len(t_span)):
         Q_L[t,i] = N_L[t,i]*MW_vett[i]/rho_vett[i]/1000            # [m3/h]   - Liquid Volumetric Flow of species i
         Q_V[t,i] = N_V[t,i]*MW_vett[i]/rho_vett[i]/1000            # [m3/h]   - Vapor Volumetric Flow of species i
 
+y_vol = Q_V/Q_V.sum(axis=1)[:,None]                            # [-]     - Outlet Volumetric Fraction - Vapor phase of the flash
+Q_tot = Q_V.sum(axis=1)                                        # [m3/h]  - Total Volumetric Flow
 
+print('Average daily flow rate: ', round(Q_tot.mean(),2)*24, 'm3/d')
 print('\n*** RESULTS AT t = 0 ***')
 print('\n alpha: {:.6f}'.format(alpha[0]))
 
@@ -239,6 +244,8 @@ plt.plot(t_span, x_i[:,0], label='Methane')
 plt.plot(t_span, x_i[:,1], label='CO2')
 plt.plot(t_span, x_i[:,2], label='Sulfur')
 plt.plot(t_span, x_i[:,3], label='Water')
+plt.xlim([0, 24])
+
 plt.legend()
 plt.xlabel('Time [h]')
 plt.ylabel('Molar Fraction [-]')
@@ -248,10 +255,21 @@ plt.plot(t_span, y_i[:,0], label='Methane')
 plt.plot(t_span, y_i[:,1], label='CO2')
 plt.plot(t_span, y_i[:,2], label='Sulfur')
 plt.plot(t_span, y_i[:,3], label='Water')
+plt.xlim([0, 24])
+plt.ylim([0,1])
 plt.legend()
 plt.xlabel('Time [h]')
 plt.ylabel('Molar Fraction [-]')
 plt.title('Vapor Phase')
+# plt.subplot(3,1,3)
+# plt.plot(t_span, y_vol[:,0], label='Methane')
+# plt.plot(t_span, y_vol[:,1], label='CO2')
+# plt.plot(t_span, y_vol[:,2], label='Sulfur')
+# plt.plot(t_span, y_vol[:,3], label='Water')
+# plt.legend()
+# plt.xlabel('Time [h]')
+# plt.ylabel('Volumetric Fraction [-]')
+# plt.title('Vapor Phase')
 
 plt.figure()
 plt.subplot(2,1,1)
@@ -260,16 +278,20 @@ plt.title('Level of liquid in the digester')
 plt.grid()
 plt.xlabel('Time [h]')
 plt.ylabel('Liquid Level [m]')
+plt.xlim([0, 24])
 plt.subplot(2,1,2)
 plt.plot(t_span, Q_in)
 plt.title('Influent flow rate')
 plt.grid()
 plt.xlabel('Time [h]')
+plt.xlim([0, 24])
 plt.ylabel('Flow rate [m3/h]')
 
 plt.figure()
 plt.plot(t_span, N_V[:,0], label='Methane')
 plt.plot(t_span, N_V[:,1], label='CO2')
-
+plt.xlabel('Time [h]')
+plt.ylabel('Vapour Molar Flow [mol/h]')
+plt.legend()
 plt.show()
 

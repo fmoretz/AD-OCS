@@ -3,9 +3,9 @@ import numpy as np
 from pathlib import Path
 
 print('Choose a datasets: \n 1 -> AMOCO_HN \n 2 -> provaADM1')
-name_index =input("->")
+name_index = 1 # input("->")
 
-datasets = ["amoco_HN_level_h","provaADM1 level"]
+datasets = ["amoco_HN_hour","provaADM1_hour"]
 simname  = datasets[int(name_index) -1]
 print("Data are from:",simname)
 
@@ -36,6 +36,6 @@ q_C   = T1["q_C"]  # [mmol/L/d]
 P_C   = T1["P_C"]  # [atm]
 q_M   = T1["q_CH4"]
 
-Dil     = 1/HRT # [1/d] - Vector of dilution rates
+Dil     = 1/HRT
 
 
