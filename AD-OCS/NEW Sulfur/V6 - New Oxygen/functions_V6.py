@@ -55,7 +55,7 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
 
         for timestep in range(len(t_span_loc)): # Iteration along t_span_loc
 
-            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/max(1e-14,(t_span_loc[timestep] - t_span_loc[0])) # Calculate the local mu by the slope of the X2_upto curve
+            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/(t_span_loc[timestep] - t_span_loc[0]) # Calculate the local mu by the slope of the X2_upto curve
             if np.isnan(mu_loc[timestep]):
                 mu_loc[timestep] = 0 # If the slope is nan, set it to 0
             rho_srb_loc[timestep] = growth_SRB(timestep, Xs_max, mu_loc[timestep], 0)  # Calculate the local SRB growth rate with the Gompertz derivative

@@ -42,12 +42,12 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
 
         for timestep in range(len(t_span_loc)): # Iteration along t_span_loc
 
-            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/(t_span_loc[timestep] - t_span_loc[0]) # Calculate the local mu by the slope of the X2_upto curve
+            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/max(1e-14,(t_span_loc[timestep] - t_span_loc[0])) # Calculate the local mu by the slope of the X2_upto curve
             if np.isnan(mu_loc[timestep]):
                 mu_loc[timestep] = 0 # If the slope is nan, set it to 0
             rho_srb_loc[timestep] = growth_SRB(timestep, Xs_max, mu_loc[timestep], 0)  # Calculate the local SRB growth rate with the Gompertz derivative
             
-        print('t:',t)
+        print('t:',round(t,2),'days')
         rho_srb = np.max(rho_srb_loc) # At each t take the maximum value of the local SRB growth rate, it is the "true" SRB growth rate to be used later                     
           
     else:
@@ -111,7 +111,7 @@ def f_deviations(t_span, t_change_vett, y_in_0):
     y_influent = np.zeros((len(t_span), len(y_in_0))) # Defines the y_in values which will be used in the main
 
     index = 0
-    t_change_loc = t_change_vett[index]                # Get the time when the first deviation is applied
+    t_change_loc = t_change_vett[index]    # Get the time when the first deviation is applied
     scale_loc    = np.ones(len(y_in_0))    # Get the scale values for the first time change
 
     
@@ -121,7 +121,7 @@ def f_deviations(t_span, t_change_vett, y_in_0):
         while True:
             if t < t_change_loc:        
                 y_influent[i] = y_in_0*scale_loc
-                print(t, t_change_loc, scale_loc)
+                print(round(t,2), t_change_loc, scale_loc)
                 if i == (len(t_span)-1):  
                     break
                 else:      

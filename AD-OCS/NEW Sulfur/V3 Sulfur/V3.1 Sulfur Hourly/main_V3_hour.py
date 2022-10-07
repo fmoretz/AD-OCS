@@ -1,6 +1,5 @@
 ''' AD_OCS Model with sulfur addition'''
 
-
 import math
 import numpy as np
 from scipy.integrate import odeint
@@ -14,9 +13,19 @@ from functions_V3 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviati
 
 
 # System definition
-t_span = np.linspace(0,200,300) # time span
+d_start = 0         # [h] - Start time
+d_end   = 60        # [h] - End time
+hours   = 1         # [h] - Discretization time
+n_times = int((d_end-d_start)*(hours))+1 # Number of time steps
 
-y_influent = f_deviations(t_span, T3.index.values, y_in_0) # Get the deviated influent values at each timestamp
+print('***Intervals of {hours} hours. \n {n_times} time steps***'.format(hours=hours, n_times=n_times))
+
+t_span = np.linspace(d_start,d_end,n_times) # time span
+
+t_span_d = t_span/24 # time span in days
+
+
+y_influent = f_deviations(t_span_d, T3.index.values, y_in_0) # Get the deviated influent values at each timestamp
 
 # --------------------------------------------------------------------------------------------
 # Ode Integration of AMOCO_HN: used to get X2 
@@ -24,7 +33,7 @@ y_influent = f_deviations(t_span, T3.index.values, y_in_0) # Get the deviated in
 
 y0= [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions established from SS
 
-YOUT_pre = odeint(AMOCO_HN, y0, t_span, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values))
+YOUT_pre = odeint(AMOCO_HN, y0, t_span_d, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values))
 X2_pre = YOUT_pre[:,2]
 print('************** AMOCOHN OK *******************')
 
@@ -34,7 +43,7 @@ print('************** AMOCOHN OK *******************')
 
 y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[5], SSTATE[6]] # initial conditions established from SS
 
-YOUT = odeint(AD_OCS_Model, y0, t_span, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span))
+YOUT = odeint(AD_OCS_Model, y0, t_span_d, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span))
 
 # Get results
 XT = YOUT[:,0]              # [gCOD/L] - Particulate 
@@ -70,7 +79,7 @@ for x in range(len(t_span)):
     q_M[x] = k[5]*mu2[x]*X2[x]                                   # [mmol/L/d] - CH4 Outlet Molar Flow
     pH[x]  = np.real(-np.log10(Kb*CO2[x]/B[x]))                  # [-]        - System pH
 
-q_tot = q_C + q_M                                                   # [mmol/L/d] - Outlet global molar flow  
+q_tot = q_C + q_M                                                # [mmol/L/d] - Outlet global molar flow  
 
 # Compute Mass Flows
 
@@ -128,50 +137,50 @@ q_M_new = y_M_new*q_tot
 q_C_new = y_C_new*q_tot
 q_S_new = y_S_new*q_tot
 
-plt.figure()
-plt.subplot(2,1,1)
-plt.plot(t_span, q_M_new, label='CH4')
-plt.plot(t_span, q_C_new, label='CO2')
-plt.plot(t_span, q_S_new, label='Sulfur')
-plt.legend()
-plt.xlabel('Time [d]')
-plt.ylabel('Molar Flow [mmol/L/d]')
-plt.subplot(2,1,2)
-plt.plot(t_span, y_M_new, label='CH4')
-plt.plot(t_span, y_C_new, label='CO2')
-plt.plot(t_span, y_S_new, label='Sulfur')
-plt.legend()
-plt.xlabel('Time [d]')
-plt.ylabel('Mole Fraction [-]')
+# plt.figure()
+# plt.subplot(2,1,1)
+# plt.plot(t_span, q_M_new, label='CH4')
+# plt.plot(t_span, q_C_new, label='CO2')
+# plt.plot(t_span, q_S_new, label='Sulfur')
+# plt.legend()
+# plt.xlabel('Time [d]')
+# plt.ylabel('Molar Flow [mmol/L/d]')
+# plt.subplot(2,1,2)
+# plt.plot(t_span, y_M_new, label='CH4')
+# plt.plot(t_span, y_C_new, label='CO2')
+# plt.plot(t_span, y_S_new, label='Sulfur')
+# plt.legend()
+# plt.xlabel('Time [d]')
+# plt.ylabel('Mole Fraction [-]')
 
-plt.figure()
-plt.suptitle('Sulfur Kinetics')
-plt.subplot(4,1,1)
-plt.plot(t_span, Xs, label='SRB')
-plt.ylabel(ylabel='Concentration [g/L]')
-plt.subplot(4,1,2)
-plt.plot(t_span, Ss, label='Sulfur')
-plt.plot(t_span, Ss_max, '--', label='Sulfur Max')
-plt.legend()
-plt.ylabel('Concentration [mmol/L]')
-plt.subplot(4,1,3)
-plt.plot(t_span, growth_rate, label='Growth Rate')
-plt.ylabel('Growth Rate [g/L/d]')
-plt.legend()
-plt.subplot(4,1,4)
-plt.plot(t_span, mu_srb, label='Gompertz Parameter')
-plt.ylabel('Gompertz Parameter [g/L/d]')
-plt.legend()
+# plt.figure()
+# plt.suptitle('Sulfur Kinetics')
+# plt.subplot(4,1,1)
+# plt.plot(t_span, Xs, label='SRB')
+# plt.ylabel(ylabel='Concentration [g/L]')
+# plt.subplot(4,1,2)
+# plt.plot(t_span, Ss, label='Sulfur')
+# plt.plot(t_span, Ss_max, '--', label='Sulfur Max')
+# plt.legend()
+# plt.ylabel('Concentration [mmol/L]')
+# plt.subplot(4,1,3)
+# plt.plot(t_span, growth_rate, label='Growth Rate')
+# plt.ylabel('Growth Rate [g/L/d]')
+# plt.legend()
+# plt.subplot(4,1,4)
+# plt.plot(t_span, mu_srb, label='Gompertz Parameter')
+# plt.ylabel('Gompertz Parameter [g/L/d]')
+# plt.legend()
 
 
-plt.figure()
-plt.suptitle('Sulfur Kinetics effect son S2')
-plt.subplot(2,1,1)
-plt.plot(t_span, S2, label='S2')
-plt.plot(t_span, S2_new, label='S2_new')
-plt.legend()
-plt.ylabel('Concentration [mmol/L]')
-plt.subplot(2,1,2)
-plt.plot(t_span, S2-S2_new, label='S2-S2_new')
-plt.ylabel('Difference [mmol/L]')
-plt.show()
+# plt.figure()
+# plt.suptitle('Sulfur Kinetics effect on S2')
+# plt.subplot(2,1,1)
+# plt.plot(t_span, S2, label='S2')
+# plt.plot(t_span, S2_new, label='S2_new')
+# plt.legend()
+# plt.ylabel('Concentration [mmol/L]')
+# plt.subplot(2,1,2)
+# plt.plot(t_span, S2-S2_new, label='S2-S2_new')
+# plt.ylabel('Difference [mmol/L]')
+# # plt.show()

@@ -1,8 +1,8 @@
-''' V5.0 AD_OCS Model with sulfur addition and VLE equilibrium
-    V5.1 - Level: Level control of the digester
-    V5.2 - hourly: hourly control of the digester'''
+''' V6.0 AD-OCS model with sulfur and oxygen
+    Optimization ruotine'''
 
 import math
+from pprint import pprint as pp
 import numpy as np
 from scipy.integrate import odeint
 from scipy.optimize import fsolve
@@ -10,17 +10,18 @@ import matplotlib.pyplot as plt
 
 from SS_Algebraic import*
 from Influent import*
-from GLConstants import*
+from TMD_properties import*
 
-from functions_V5 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviations, deviations_check, level_t
-from GL_Equilibrium import f_RR_equilibrium
+from functions_V6 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviations, deviations_check, level_t
+
+from real_gas_mix import f_VL_realgas
 
 
 # System definition
-d_start = 0    # [h] - Start time
-d_end   = 60  # [h] - End time
-hours   = 1    # [h] - Discretization time
-n_times = int((d_end-d_start)*hours)+1 # Number of time steps
+d_start = 0   # [h] - Start time
+d_end   = 24 # [h] - End time
+hours   = 1   # [h] - Discretization time
+n_times = int((d_end-d_start)*hours) # Number of time steps
 
 print('***Intervals of {hours} hours. \n {n_times} time steps***'.format(hours=hours, n_times=n_times))
 
@@ -89,7 +90,7 @@ q_tot = q_C + q_M                                                # [mmol/L/d] - 
 
 Xs     = np.zeros(len(t_span))                                   # [g/L]      - Sulfate Reducing Bacteria
 Ss     = np.zeros(len(t_span))                                   # [mmol/L]      - Sulfur dissolved
-y_S = np.zeros(len(t_span))                                      # [-]        - Sulfur Mole fraction in gas phase
+y_S    = np.zeros(len(t_span))                                      # [-]        - Sulfur Mole fraction in gas phase
 Ss_max = np.zeros(len(t_span))                                   # [mmol/L]      - Maximum Sulfur dissolved concentration
 Xs_max = np.zeros(len(t_span))                                   # [g/L]      - Maximum Sulfate Reducing Bacteria concentration (Gompertz Asymptote)
 mu_srb = np.zeros(len(t_span))                                   # [g/L/d]    - Gompertz parameter for SRB growth
@@ -116,17 +117,10 @@ for j in range(len(t_span)):
         growth_rate[j] = np.nanmax(dXsdt[j])                  # [g/L/d]    - Get the growth rate of SRB at each time step as the maximum of the possible rates
 
     y_S[j]   = (KH_S*Ss[j])/P_dig                             # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
-q_S = y_S*q_tot 
-plt.figure()                                              # [mmol/L/d] - Sulfur Outlet Specific Molar Flow
-plt.plot(t_span, q_S, label='Sulfur')
-plt.plot(t_span, q_C, label='Carbon')
-plt.plot(t_span, q_M, label='Methane')
-plt.xlabel('Time [d]')
-plt.show()
+q_S = y_S*q_tot                                               # [mmol/L/d] - Sulfur Outlet Specific Molar Flow
+
 ### Assess the liquid volume dynamics
 h = np.zeros(len(t_span))
-print(T3.index.values)
-
 h0 = h_SS
 t_change = t_span[0]
 index = 0
@@ -149,10 +143,10 @@ for i in range(len(t_span)):
     h[i] = level_t(t, D, Q_in[i], SR, h0, t_change)
     V_liq[i] = np.pi*Dr**2*h[i]/4                             # [m3] - Liquid Volum
     if h[i] > hmax:
-        print('Kittemmuort lo stai riempiendo troppo')
+        print('!!! Level is too high !!!')
         input('Press Enter to continue')
     elif h[i] < hmin:
-        print('Kittemmuort lo stai svuotando troppo')
+        print('!!! Level is too low !!!')
         input('Press Enter to continue')
         
 #### Evaluation of the G/L equilibrium effects on the system ####
@@ -166,97 +160,119 @@ F_S = np.zeros(len(t_span))                                   # [-] - Sulfur Flo
 F_W = np.zeros(len(t_span))                                   # [-] - Water Flow
 
 for i in range(len(t_span)):  
-    F_W[i] = water_percentage*Q_in[i]*rho_water/18*1000/24         # [mol/h]    - Water Flow 
+    F_W[i] = water_percentage*Q_in[i]*rho_W/18*1000/24             # [mol/h]    - Water Flow 
     F_M[i] = q_M[i]*V_liq[i]/24                                    # [mol/h]   - Methane Flow 
     F_C[i] = q_C[i]*V_liq[i]/24                                    # [mol/h]   - CO2 Flow
     F_S[i] = q_S[i]*V_liq[i]/24                                    # [mol/h]   - Sulfur Flow
 
     F_i[i] = np.array([F_M[i], F_C[i], F_S[i], F_W[i]])         # [mol/h] - Outlet Molar Flow - In of the flash
 
-z_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - In of the flash
-x_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - Liquid phase of the flash
-y_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - Vapor phase of the flash
+z_i = np.zeros([len(t_span),n_species])                       # [-] - Outlet Molar Fraction - In of the flash
+x_i = np.zeros([len(t_span),n_species])                       # [-] - Outlet Molar Fraction - Liquid phase of the flash
+y_i = np.zeros([len(t_span),n_species])                       # [-] - Outlet Molar Fraction - Vapor phase of the flash
 
 K = np.zeros([len(t_span),n_species])                         # [-] - Equilibrium Constant
 num = np.zeros([len(t_span),n_species])                       # [-] - Numerator of the equilibrium equation
 den = np.zeros([len(t_span),n_species])                       # [-] - Denominator of the equilibrium equation
 
-N_L = np.zeros([len(t_span),n_species])                       # [-] - Liquid Phase Mole Fraction
-N_V = np.zeros([len(t_span),n_species])                       # [-] - Vapor Phase Mole Fraction
+N_L_tot = np.zeros(len(t_span))                               # [mol/h] - Total Liquid Molar Flow
+N_V_tot = np.zeros(len(t_span))                               # [mol/h] - Total Vapor Molar Flow
+
+N_L = np.zeros([len(t_span),n_species])                       # [mol/h] - Liquid Phase Molar Flow
+N_V = np.zeros([len(t_span),n_species])                       # [mol/h] - Vapor Phase Molar Flow
+Q_L = np.zeros([len(t_span),n_species])                       # [m3/h] - Liquid Phase volumetric flow
+Q_V = np.zeros([len(t_span),n_species])                       # [m3/h] - Vapor Phase volumetric flow
 
 alpha = np.zeros(len(t_span))                                 # [-]     - 
+MW_vett = [MW_M, MW_C, MW_S, MW_W]                            # [g/mol] - Molecular Weight Vector
+rho_vett = [rho_M, rho_C, rho_S, rho_W]                       # [g/L]   - Density Vector
 law = ('H', 'H', 'H', 'R')                                    # [-]     - Define the law to be used for the equilibrium calculation (R for Raoult's Law, H for Henry's Law)
 for t in range(len(t_span)):  
     F_in = sum(F_i[t])                                        # [mol/h] - Total Inlet Molar Flow
     for i in range(n_species):        
-        if law[i] == 'R':
-            P_sp = P_sat[i]
-        else:
-            P_sp = H_atm[i]             
-        K[t,i] = P_sp/P_dig
-        z_i[t,i] = F_i[t,i]/F_in
-            
-    guess = sum(z_i[t,0:2])
-    alpha[t] = fsolve(f_RR_equilibrium, guess , args=(z_i[t,:], law, P_sat, H_atm, P_dig)) # [-] - Solve the G/L equilibrium for the alpha factor
-    N_V_tot = F_in*alpha[t]                                       # [mol/h] - Vapor Molar Flow
-    N_L_tot = F_in - N_V_tot                                      # [mol/h] - Liquid Molar Flow
+        z_i[t,i] = F_i[t,i]/F_in                              # [-]     - Outlet Molar Fraction - In of the flash        
+      
+    VLsolution = f_VL_realgas(z_i[t], T, P_dig)               # [-]     - Solve the G/L equilibrium
+    alpha[t] = VLsolution[0]                                  # [-] - Vapor fraction      
+    K[t]= VLsolution[1]         
+    
+    N_V_tot[t] = F_in*alpha[t]                                       # [mol/h] - Vapor Molar Flow
+    N_L_tot[t] = F_in - N_V_tot[t]                                   # [mol/h] - Liquid Molar Flow
     for i in range(n_species):
-        x_i[t,i] = z_i[t,i]/(1+alpha[t]*(K[t,i]-1))
-        y_i[t,i] = K[t,i]*x_i[t,i]
-        N_L[t,i] = N_L_tot*x_i[t,i]
-        N_V[t,i] = N_V_tot*y_i[t,i]
+        x_i[t,i] = z_i[t,i]/(1+alpha[t]*(K[t,i]-1))                # [-]     - Outlet Molar Fraction - Liquid phase of the flash
+        y_i[t,i] = K[t,i]*x_i[t,i]                                 # [-]     - Outlet Molar Fraction - Vapor phase of the flash
+        N_L[t,i] = N_L_tot[t]*x_i[t,i]                             # [mol/h] - Liquid Molar Flow of species i
+        N_V[t,i] = N_V_tot[t]*y_i[t,i]                             # [mol/h] - Vapor Molar Flow of species i
+        Q_L[t,i] = N_L[t,i]*MW_vett[i]/rho_vett[i]/1000            # [m3/h]   - Liquid Volumetric Flow of species i
+        Q_V[t,i] = N_V[t,i]*MW_vett[i]/rho_vett[i]/1000            # [m3/h]   - Vapor Volumetric Flow of species i
 
-entrance = sum(F_i[0,0:2])
-out = sum(N_V[0,0:2])
-delta = entrance - out
-print('Entrance: ', entrance)
-print('Out: ', out)
-print('Delta: ', delta)
-print('Relative Error: ', delta/entrance*100,'%')
 
-print(N_V[0])
-print(N_L[0])
+#### Evaluation of the Oxygen effect equilibrium effects on the system: CSTR behaviour ####
+# IN: N_V[M, C, S, W] + N_in_O2
+# OUT: N_out[M, C, S, W, O]
 
-print('Alpha',alpha[0])
-print('Liquid:', x_i[0,:])
-print('Vapour:',y_i[0,:])
-plt.figure()
-plt.subplot(2,1,1)
-plt.plot(t_span, x_i[:,0], label='Methane')
-plt.plot(t_span, x_i[:,1], label='CO2')
-plt.plot(t_span, x_i[:,2], label='Sulfur')
-plt.plot(t_span, x_i[:,3], label='Water')
+
+
+RC = 1.8                                                   # [gS/gO2]     - Stoichiometry of the reaction
+alfa = 1.1                                              # [-] - Power for sulfur concentration
+beta = 0.9                                            # [-] - Power for oxygen concentration
+k_SOB = 0.6                                         # [1/m3/h*(gS*gO)^proper exp] - Reaction rate constant
+scale_ox = [0.1,0.3, 0.5, 0.7, 1, 1.5]                         # [-] - Scale factor for the oxygen concentration
+n_out_M = np.zeros((len(t_span),len(scale_ox)))                               # [mol/h] - Methane Flow
+n_out_C = np.zeros((len(t_span),len(scale_ox)))                              # [mol/h] - Carbon Flow
+n_out_S = np.zeros((len(t_span),len(scale_ox)))                                 # [mol/h] - Sulfur Flow
+n_out_W = np.zeros((len(t_span),len(scale_ox)))                           # [mol/h] - Water Flow
+n_out_O = np.zeros((len(t_span),len(scale_ox)))                                  # [mol/h] - Oxygen Flow
+r_vett = np.zeros((len(t_span),len(scale_ox)))                              # [mg/L/min] - Reaction rate
+SS_vett = np.zeros((len(t_span),len(scale_ox)))                             # [mg/L] - Sulfur concentrationscale_ox = [0.5, 1, 1.5, 2]                                    # [-] - Scale factor for the oxygen concentration
+SO_vett = np.zeros((len(t_span),len(scale_ox)))                             # [mg/L] - Sulfur concentrationscale_ox = [0.5, 1, 1.5, 2]                                    # [-] - Scale factor for the oxygen concentration
+effic = np.zeros((len(t_span),len(scale_ox)))                                          # [-] - Efficency of the reaction
+
+for n in range(len(scale_ox)):
+    scale = scale_ox[n]
+    for i in range(len(t_span)):   
+        n_S_in = N_V[i,2] # [mol/h] - Influent Sulfur flowrate
+        n_O2_in = scale*n_S_in # [mol/h] - Influent Oxygen flowrate
+        def Headspace_reactions(y):
+            global RC, V_gas, k_SOB, alfa, beta
+            n_S =  max(0,y[0]) # [mol/h] - Sulfur flowrate
+            n_O2 = max(0,y[1]) # [mol/h] - Oxygen flowrate  
+        
+            n_out = N_V[i,0]+N_V[i,1]+N_V[i,3] + n_S + n_O2
+            y_S_loc = n_S/n_out # [-] - Sulfur fraction in the headspace
+            y_O2_loc = n_O2/n_out # [-] - Oxygen fraction in the headspace       
+            
+            C_S  = y_S_loc*P_dig/(Rgas_L_atm_K*T)  # [mol/L] - Sulfur concentration in gas phase atm/(L*atm/mol/K*L) = mol/L
+            C_O2 = y_O2_loc*P_dig/(Rgas_L_atm_K*T) # [mol/L] - Oxygen concentration in gas phase
+
+            S_S = C_S*MW_S*1e+3   # [g/m3] - Sulfur concentration in gas phase
+            S_O2 = C_O2*MW_O*1e+3 # [g/m3] - Oxygen concentration in gas phase
+
+            r_SOB = k_SOB*(S_S**alfa)*(S_O2**beta)                     # [gS/m3/h] - Reaction rate SOB
+            #r_SOB = 29/24 # gS/m3/h - Reaction rate SOB from literature (29 mg/L/d)
+            V_gas = 1.5*((V_reactor - V_liq[i]) + V_headspace)
+            
+            BM_S  = n_S_in     - n_S  - V_gas*r_SOB/MW_S            # [mol/h]   - Sulfur Balance
+            BM_O2 = n_O2_in    - n_O2 - V_gas*r_SOB/RC/MW_O         # [mol/h]   - Oxygen Balance
+            if BM_S and BM_O2 < 1e-10:
+                r_vett[i,n] = r_SOB/60 # [mg/L/min] - Reaction rate
+                SS_vett[i,n] = S_S    # [mg/L] - Sulfur concentration
+                SO_vett[i,n] = S_O2
+                print('r = ', r_SOB/60,'[mg/L/min]')
+                print('S_S = ', S_S,'[mg/L]', 'S_O2 = ', S_O2,'[mg/L]')
+            return [BM_S, BM_O2]
+
+        y0 = [n_S_in/10, n_O2_in/10]
+        [n_out_S[i,n], n_out_O[i,n]] = fsolve(Headspace_reactions, y0)
+    print(n_out_S[:,n], n_out_O[:,n])
+    effic[:,n] = (1-n_out_S[:,n]/N_V[:,2])*100    
+plt.figure() 
+plt.plot(t_span, effic, '-',label = scale_ox)
+plt.xlabel('Time [h]')
+plt.ylabel('Efficency [%]')
+plt.title('Efficency of the reaction')
 plt.legend()
-plt.xlabel('Time [h]')
-plt.ylabel('Molar Fraction [-]')
-plt.title('Liquid Phase')
-plt.subplot(2,1,2)
-plt.plot(t_span, y_i[:,0], label='Methane')
-plt.plot(t_span, y_i[:,1], label='CO2')
-plt.plot(t_span, y_i[:,2], label='Sulfur')
-plt.plot(t_span, y_i[:,3], label='Water')
-plt.legend()
-plt.xlabel('Time [h]')
-plt.ylabel('Molar Fraction [-]')
-plt.title('Vapor Phase')
-
-plt.figure()
-plt.subplot(2,1,1)
-plt.plot(t_span, h)
-plt.title('Level of liquid in the digester')
 plt.grid()
-plt.xlabel('Time [h]')
-plt.ylabel('Liquid Level [m]')
-plt.subplot(2,1,2)
-plt.plot(t_span, Q_in)
-plt.title('Influent flow rate')
-plt.grid()
-plt.xlabel('Time [h]')
-plt.ylabel('Flow rate [m3/h]')
-
-plt.figure()
-plt.plot(t_span, N_V[:,0], label='Methane')
-plt.plot(t_span, N_V[:,1], label='CO2')
-
 plt.show()
+
 

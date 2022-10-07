@@ -121,8 +121,9 @@ plt.figure()                                              # [mmol/L/d] - Sulfur 
 plt.plot(t_span, q_S, label='Sulfur')
 plt.plot(t_span, q_C, label='Carbon')
 plt.plot(t_span, q_M, label='Methane')
-plt.xlabel('Time [d]')
-plt.show()
+plt.xlabel('Time [h]')
+plt.ylabel('Molar Flow [mmol/L/d]')
+
 ### Assess the liquid volume dynamics
 h = np.zeros(len(t_span))
 print(T3.index.values)
@@ -147,7 +148,7 @@ for i in range(len(t_span)):
         index = min(index + 1, len(T3.index.values)-1)  
                 
     h[i] = level_t(t, D, Q_in[i], SR, h0, t_change)
-    V_liq[i] = np.pi*Dr**2*h[i]/4                             # [m3] - Liquid Volum
+    V_liq[i] = np.pi*Dr**2*h[i]/4                             # [m3] - Liquid Volume
     if h[i] > hmax:
         print('Kittemmuort lo stai riempiendo troppo')
         input('Press Enter to continue')
@@ -157,106 +158,19 @@ for i in range(len(t_span)):
         
 #### Evaluation of the G/L equilibrium effects on the system ####
 
-n_species = 4                                                 # [-]       - Number of species in the system
-
-F_i = np.zeros([len(t_span),n_species])                       # [-] - Outlet Molar Fraction - In of the flash
-F_M = np.zeros(len(t_span))                                   # [-] - Methane Flow
-F_C = np.zeros(len(t_span))                                   # [-] - Carbon Flow
-F_S = np.zeros(len(t_span))                                   # [-] - Sulfur Flow
-F_W = np.zeros(len(t_span))                                   # [-] - Water Flow
-
-for i in range(len(t_span)):  
-    F_W[i] = water_percentage*Q_in[i]*rho_water/18*1000/24         # [mol/h]    - Water Flow 
-    F_M[i] = q_M[i]*V_liq[i]/24                                    # [mol/h]   - Methane Flow 
-    F_C[i] = q_C[i]*V_liq[i]/24                                    # [mol/h]   - CO2 Flow
-    F_S[i] = q_S[i]*V_liq[i]/24                                    # [mol/h]   - Sulfur Flow
-
-    F_i[i] = np.array([F_M[i], F_C[i], F_S[i], F_W[i]])         # [mol/h] - Outlet Molar Flow - In of the flash
-
-z_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - In of the flash
-x_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - Liquid phase of the flash
-y_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - Vapor phase of the flash
-
-K = np.zeros([len(t_span),n_species])                         # [-] - Equilibrium Constant
-num = np.zeros([len(t_span),n_species])                       # [-] - Numerator of the equilibrium equation
-den = np.zeros([len(t_span),n_species])                       # [-] - Denominator of the equilibrium equation
-
-N_L = np.zeros([len(t_span),n_species])                       # [-] - Liquid Phase Mole Fraction
-N_V = np.zeros([len(t_span),n_species])                       # [-] - Vapor Phase Mole Fraction
-
-alpha = np.zeros(len(t_span))                                 # [-]     - 
-law = ('H', 'H', 'H', 'R')                                    # [-]     - Define the law to be used for the equilibrium calculation (R for Raoult's Law, H for Henry's Law)
-for t in range(len(t_span)):  
-    F_in = sum(F_i[t])                                        # [mol/h] - Total Inlet Molar Flow
-    for i in range(n_species):        
-        if law[i] == 'R':
-            P_sp = P_sat[i]
-        else:
-            P_sp = H_atm[i]             
-        K[t,i] = P_sp/P_dig
-        z_i[t,i] = F_i[t,i]/F_in
-            
-    guess = sum(z_i[t,0:2])
-    alpha[t] = fsolve(f_RR_equilibrium, guess , args=(z_i[t,:], law, P_sat, H_atm, P_dig)) # [-] - Solve the G/L equilibrium for the alpha factor
-    N_V_tot = F_in*alpha[t]                                       # [mol/h] - Vapor Molar Flow
-    N_L_tot = F_in - N_V_tot                                      # [mol/h] - Liquid Molar Flow
-    for i in range(n_species):
-        x_i[t,i] = z_i[t,i]/(1+alpha[t]*(K[t,i]-1))
-        y_i[t,i] = K[t,i]*x_i[t,i]
-        N_L[t,i] = N_L_tot*x_i[t,i]
-        N_V[t,i] = N_V_tot*y_i[t,i]
-
-entrance = sum(F_i[0,0:2])
-out = sum(N_V[0,0:2])
-delta = entrance - out
-print('Entrance: ', entrance)
-print('Out: ', out)
-print('Delta: ', delta)
-print('Relative Error: ', delta/entrance*100,'%')
-
-print(N_V[0])
-print(N_L[0])
-
-print('Alpha',alpha[0])
-print('Liquid:', x_i[0,:])
-print('Vapour:',y_i[0,:])
+F_W = water_percentage*Q_in*rho_water/18*1000/24  # [mol/h]    - Water Flow 
+F_M = q_M/24*V_liq                                # [mol/h]   - Methane Flow 
+F_C = q_C/24*V_liq                                # [mol/h]   - CO2 Flow
+F_S = q_S/24*V_liq                                # [mol/h]   - Sulfur Flow
+print(F_M)
+F = {'H2O': F_W, 'CH4': F_M, 'CO2': F_C, 'H2S': F_S}
 plt.figure()
-plt.subplot(2,1,1)
-plt.plot(t_span, x_i[:,0], label='Methane')
-plt.plot(t_span, x_i[:,1], label='CO2')
-plt.plot(t_span, x_i[:,2], label='Sulfur')
-plt.plot(t_span, x_i[:,3], label='Water')
+
+plt.plot(t_span, F['CH4'], label='Methane')
+plt.plot(t_span, F['CO2'], label='Carbon')
+plt.plot(t_span, F['H2S'], label='Sulfur')
 plt.legend()
-plt.xlabel('Time [h]')
-plt.ylabel('Molar Fraction [-]')
-plt.title('Liquid Phase')
-plt.subplot(2,1,2)
-plt.plot(t_span, y_i[:,0], label='Methane')
-plt.plot(t_span, y_i[:,1], label='CO2')
-plt.plot(t_span, y_i[:,2], label='Sulfur')
-plt.plot(t_span, y_i[:,3], label='Water')
-plt.legend()
-plt.xlabel('Time [h]')
-plt.ylabel('Molar Fraction [-]')
-plt.title('Vapor Phase')
-
-plt.figure()
-plt.subplot(2,1,1)
-plt.plot(t_span, h)
-plt.title('Level of liquid in the digester')
-plt.grid()
-plt.xlabel('Time [h]')
-plt.ylabel('Liquid Level [m]')
-plt.subplot(2,1,2)
-plt.plot(t_span, Q_in)
-plt.title('Influent flow rate')
-plt.grid()
-plt.xlabel('Time [h]')
-plt.ylabel('Flow rate [m3/h]')
-
-plt.figure()
-plt.plot(t_span, N_V[:,0], label='Methane')
-plt.plot(t_span, N_V[:,1], label='CO2')
+plt.xlabel('Time [d]')
+plt.ylabel('Molar Flow [mol/h]')
 
 plt.show()
-
