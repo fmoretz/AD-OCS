@@ -1,9 +1,9 @@
 # import numerical libraries
 import numpy as np
-from main import*
+from main_V3 import*
 import matplotlib.pyplot as plt
 from PhysConstants import*
-from plot import fitsubplotter
+#from plot import fitsubplotter
 
 # define gompertz function
 def gompertz(x,a,b,c):

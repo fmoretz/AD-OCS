@@ -1,4 +1,4 @@
-''' V6.0 AD-OCS model with sulfur and oxygen'''
+''' Current version of AD_OCS model. Define the input according to the defined unit of measure from the spreadsheet.'''
 
 import math
 from pprint import pprint as pp
@@ -8,12 +8,12 @@ from scipy.optimize import fsolve
 import matplotlib.pyplot as plt
 
 from SS_Algebraic import*
-from Influent import*
-from TMD_properties import*
+from dataimport import*
+from PhysConstants  import*
 
-from functions_V6 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviations, deviations_check, level_t
-
-from real_gas_mix import f_VL_realgas
+from functions import gompertz, growth_SRB, f_deviations, deviations_check, level_t
+from models import AD_OCS, AMOCO_HN
+from mix_real_gas import f_VL_realgas
 
 
 # System definition
@@ -48,7 +48,7 @@ print('************** AMOCOHN OK *******************')
 
 y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions esxkcdlished from SS
 
-YOUT = odeint(AD_OCS_Model, y0, t_span_d, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span))
+YOUT = odeint(AD_OCS, y0, t_span_d, args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span))
 
 # Get results
 XT = YOUT[:,0]              # [gCOD/L] - Particulate 
@@ -59,18 +59,9 @@ S1 = YOUT[:,4]              # [g/L]    - Organic Soluble Substrate
 S2 = YOUT[:,5]              # [mmol/L] - VFA dissolved
 C  = YOUT[:,6]              # [mmol/L] - Inorganic Carbon Dissolved
 
-print('************** AD_OCS_Model OK *******************')
+print('************** AD_OCS OK *******************')
 
 # Solver Output: from all the variables from the ones of the ODE
-mu1 = np.zeros(len(t_span))
-mu2 = np.zeros(len(t_span))
-CO2 = np.zeros(len(t_span))
-B   = np.zeros(len(t_span))
-phi = np.zeros(len(t_span))
-p_C = np.zeros(len(t_span))
-q_C = np.zeros(len(t_span))
-q_M = np.zeros(len(t_span))
-pH  = np.zeros(len(t_span))
 
 for x in range(len(t_span)):
     mu1[x] = mu_max[0]*(S1[x]/(S1[x]+Ks[0]))                     # [1/d]      - Specific Growth Rate for X1 (Monod)
@@ -182,7 +173,7 @@ N_V = np.zeros([len(t_span),n_species])                       # [mol/h] - Vapor 
 Q_L = np.zeros([len(t_span),n_species])                       # [m3/h] - Liquid Phase volumetric flow
 Q_V = np.zeros([len(t_span),n_species])                       # [m3/h] - Vapor Phase volumetric flow
 
-alpha = np.zeros(len(t_span))                                 # [-]     - 
+alpha_flash = np.zeros(len(t_span))                           # [-]     - 
 MW_vett = [MW_M, MW_C, MW_S, MW_W]                            # [g/mol] - Molecular Weight Vector
 rho_vett = [rho_M, rho_C, rho_S, rho_W]                       # [g/L]   - Density Vector
 law = ('H', 'H', 'H', 'R')                                    # [-]     - Define the law to be used for the equilibrium calculation (R for Raoult's Law, H for Henry's Law)
@@ -191,14 +182,14 @@ for t in range(len(t_span)):
     for i in range(n_species):        
         z_i[t,i] = F_i[t,i]/F_in                              # [-]     - Outlet Molar Fraction - In of the flash        
       
-    VLsolution = f_VL_realgas(z_i[t], T, P_dig)     # [-]     - Solve the G/L equilibrium
-    alpha[t] = VLsolution[0]                                  # [-] - Vapor fraction      
+    VLsolution = f_VL_realgas(z_i[t], T, P_dig)               # [-]     - Solve the G/L equilibrium
+    alpha_flash[t] = VLsolution[0]                            # [-] - Vapor fraction      
     K[t]= VLsolution[1]         
     
-    N_V_tot[t] = F_in*alpha[t]                                       # [mol/h] - Vapor Molar Flow
+    N_V_tot[t] = F_in*alpha_flash[t]                                # [mol/h] - Vapor Molar Flow
     N_L_tot[t] = F_in - N_V_tot[t]                                   # [mol/h] - Liquid Molar Flow
     for i in range(n_species):
-        x_i[t,i] = z_i[t,i]/(1+alpha[t]*(K[t,i]-1))                # [-]     - Outlet Molar Fraction - Liquid phase of the flash
+        x_i[t,i] = z_i[t,i]/(1+alpha_flash[t]*(K[t,i]-1))          # [-]     - Outlet Molar Fraction - Liquid phase of the flash
         y_i[t,i] = K[t,i]*x_i[t,i]                                 # [-]     - Outlet Molar Fraction - Vapor phase of the flash
         N_L[t,i] = N_L_tot[t]*x_i[t,i]                             # [mol/h] - Liquid Molar Flow of species i
         N_V[t,i] = N_V_tot[t]*y_i[t,i]                             # [mol/h] - Vapor Molar Flow of species i
@@ -216,46 +207,48 @@ n_out_S = np.zeros(len(t_span))                               # [mol/h] - Sulfur
 n_out_W = np.zeros(len(t_span))                               # [mol/h] - Water Flow
 n_out_O = np.zeros(len(t_span))                               # [mol/h] - Oxygen Flow
 
-RC = 1.8                                                   # [gS/gO2]     - Stoichiometry of the reaction
-alfa = 1.1                                              # [-] - Power for sulfur concentration
-beta = 0.1                                            # [-] - Power for oxygen concentration
-k_SOB = 0.6                                         # [1/m3/h*(gS*gO)^proper exp] - Reaction rate constant
-r_vett = np.zeros(len(t_span))                                 # [mg/L/min] - Reaction rate
-S_vett = np.zeros((len(t_span),4))                                 # [mg/L] - Sulfur concentration
+RC = 1.8                                                        # [gS/gO2]     - Stoichiometry of the reaction
+alfa = 1                                                        # [-] - Power for sulfur concentration
+beta = 0.1                                                      # [-] - Power for oxygen concentration
+k_SOB = 0.6                                                     # [1/m3/h*(gS*gO)^proper exp] - Reaction rate constant
+r_vett = np.zeros(len(t_span))                                  # [mg/L/min] - Reaction rate
+S_vett = np.zeros((len(t_span),4))                              # [mg/L] - Sulfur concentration
 
 for i in range(len(t_span)):   
     n_S_in = N_V[i,2]               # [mol/h] - Influent Sulfur flowrate
     n_O2_in = 0.5*n_S_in            # [mol/h] - Influent Oxygen flowrate
+
     def Headspace_reactions(y):
         global RC, V_gas, k_SOB, alfa, beta
-        n_S =  max(0,y[0]) # [mol/h] - Sulfur flowrate
-        n_O2 = max(0,y[1]) # [mol/h] - Oxygen flowrate  
+        n_S =  max(0,y[0])                              # [mol/h] - Sulfur flowrate
+        n_O2 = max(0,y[1])                              # [mol/h] - Oxygen flowrate  
       
         n_out = N_V[i,0]+N_V[i,1]+N_V[i,3] + n_S + n_O2 # [mol/h] - Total Outflow
         
-        y_S_in = n_S_in/(sum(N_V[i,:])+n_O2_in)# [-] - Sulfur molar fraction in the inflow
-        y_O_in = n_O2_in/(sum(N_V[i,:])+n_O2_in)# [-] - Sulfur molar fraction in the inflow
+        y_S_in = n_S_in/(sum(N_V[i,:])+n_O2_in)         # [-] - Sulfur molar fraction in the inflow
+        y_O_in = n_O2_in/(sum(N_V[i,:])+n_O2_in)        # [-] - Sulfur molar fraction in the inflow
 
-        y_S_loc = n_S/n_out # [-] - Sulfur fraction in the headspace
-        y_O2_loc = n_O2/n_out # [-] - Oxygen fraction in the headspace       
+        y_S_loc = n_S/n_out                     # [-] - Sulfur fraction in the headspace
+        y_O2_loc = n_O2/n_out                   # [-] - Oxygen fraction in the headspace       
         
-        C_S  = y_S_loc*P_dig/(Rgas_L_atm_K*T)  # [mol/L] - Sulfur concentration in gas phase atm/(L*atm/mol/K*L) = mol/L
-        C_O2 = y_O2_loc*P_dig/(Rgas_L_atm_K*T) # [mol/L] - Oxygen concentration in gas phase
+        C_S  = y_S_loc*P_dig/(Rgas_L_atm_K*T)   # [mol/L] - Sulfur concentration in gas phase atm/(L*atm/mol/K*L) = mol/L
+        C_O2 = y_O2_loc*P_dig/(Rgas_L_atm_K*T)  # [mol/L] - Oxygen concentration in gas phase
 
-        S_S = C_S*MW_S*1e+3   # [g/m3] - Sulfur concentration in gas phase
-        S_O2 = C_O2*MW_O*1e+3 # [g/m3] - Oxygen concentration in gas phase
+        S_S = C_S*MW_S*1e+3                     # [g/m3] - Sulfur concentration in gas phase
+        S_O2 = C_O2*MW_O*1e+3                   # [g/m3] - Oxygen concentration in gas phase
 
         r_SOB = k_SOB*(S_S**alfa)*(S_O2**beta)                     # [gS/m3/h] - Reaction rate SOB
-        #r_SOB = 29/24 # gS/m3/h - Reaction rate SOB from literature (29 mg/L/d)
+       
         V_gas = ((V_reactor - V_liq[i]) + V_headspace)
         
         BM_S  = n_S_in     - n_S  - V_gas*r_SOB/MW_S            # [mol/h]   - Sulfur Balance
         BM_O2 = n_O2_in    - n_O2 - V_gas*r_SOB/RC/MW_O         # [mol/h]   - Oxygen Balance
+        
         if BM_S and BM_O2 < 1e-10:
-            r_vett[i] = r_SOB/60 # [mg/L/min] - Reaction rate
-            S_vett[i,0] = S_S    # [mg/L] - Sulfur concentration
+            r_vett[i] = r_SOB/60                                    # [mg/L/min] - Reaction rate
+            S_vett[i,0] = S_S                                       # [mg/L] - Sulfur concentration
             S_vett[i,1] = y_S_in*P_dig/(Rgas_L_atm_K*T)*MW_S*1e+3   # [mg/L] - Influent conc of Sulfur
-            S_vett[i,2] = S_O2
+            S_vett[i,2] = S_O2                                      # [mg/L] - O2 concentration
             S_vett[i,3] = y_O_in*P_dig/(Rgas_L_atm_K*T)*MW_O*1e+3   # [mg/L] - Influent conc of Sulfur
             print('r = ', r_SOB/60,'[mg/L/min]')
             print('S_S,in = ', y_S_in*P_dig/(Rgas_L_atm_K*T)*MW_S*1e+3,'[mg/L]', 'S_O2,in', y_O_in*P_dig/(Rgas_L_atm_K*T)*MW_O*1e+3,'[mg/L]')
@@ -326,7 +319,7 @@ plt.legend()
 plt.show()
 
 # print('\n*** RESULTS AT t = 0 ***')
-# print('\n alpha: {:.6f}'.format(alpha[0]))
+# print('\n alpha_flash: {:.6f}'.format(alpha_flash[0]))
 
 # print('\nLiquid flow: {:.2f} mol/h'.format(N_L_tot[0]))
 # print('Liquid flow: {:.2f} mol/h'.format(N_L_tot[0]))
@@ -394,6 +387,6 @@ plt.title('Water')
 plt.plot(t_span, N_V[:,3], label='Water')
 plt.ylabel('Molar flow [mol/h]')
 
-
+# plt.show()
 
 

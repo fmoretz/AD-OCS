@@ -170,7 +170,7 @@ plt.plot(t_span, F['CH4'], label='Methane')
 plt.plot(t_span, F['CO2'], label='Carbon')
 plt.plot(t_span, F['H2S'], label='Sulfur')
 plt.legend()
-plt.xlabel('Time [d]')
+plt.xlabel('Time [h]')
 plt.ylabel('Molar Flow [mol/h]')
 
 plt.show()

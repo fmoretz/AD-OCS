@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 
 print('Choose a datasets: \n 1 -> AMOCO_HN \n 2 -> provaADM1')
-name_index = 1 # input("->")
+name_index = 2 # input("->")
 
 datasets = ["amoco_HN_level_h","provaADM1_level_h"]
 simname  = datasets[int(name_index) -1]
