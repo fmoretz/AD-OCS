@@ -2,19 +2,22 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-print('Choose a datasets: \n 1 -> AMOCO_HN \n 2 -> provaADM1')
-name_index = 1 #input("->")
+print('Choose a datasets: \n 1 -> AMOCO_HN \n 2 -> provaADM1 \n 3 -> bsm2 \n 4 -> matlab')
+name_index =  input("->")
 
-datasets = ["amoco_HN","provaADM1"]
+datasets = ["amoco_HN","provaADM1", "bsm2","matlab"]
 simname  = datasets[int(name_index) -1]
 print("Data are from:",simname)
 
-filename: Path = simname + '.xlsx'
-folder: Path = Path(Path.cwd())
-folder: Path = folder.joinpath('Working data')
-reading_path =  (folder/filename)
+# filename: Path = simname + '.xlsx'
+# folder: Path = Path(Path.cwd())
+# folder: Path = folder.joinpath('Working data')
+folder = r'C:\Users\fede1\OneDrive - Politecnico di Milano\Documenti\GitHub\AD-OCS\Working_data'
+print(folder)
+reading_path =  (folder + "\\" + simname + '.xlsx')
 
-colnames = ["HRT","S1","XT", "S2", "X1", "X2", "Z", "C","CO2","B", "pH", "q_C", "P_C", "q_CH4"]
+
+colnames = ["HRT", "XT", "S1", "S2", "X1", "X2", "C", "Z", "CO2", "B", "pH", "P_C", "q_C", "q_CH4"]
 
 T1 = pd.read_excel(reading_path, sheet_name = "SS_Values",header = None, names = colnames, skiprows = 1)
 T2 = pd.read_excel(reading_path, sheet_name = "Influent", header = 0)

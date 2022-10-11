@@ -14,7 +14,7 @@ folder: Path = Path(Path.cwd())
 folder: Path = folder.joinpath('data')
 reading_path =  (folder/filename)
 
-colnames = ["HRT","S1","XT", "S2", "X1", "X2", "Z", "C","CO2","B", "pH", "q_C", "P_C", "q_CH4"]
+colnames = ["HRT", "XT", "S1", "S2", "X1", "X2", "C", "Z", "CO2", "B", "pH", "P_C", "q_C", "q_CH4"]
 
 T1 = pd.read_excel(reading_path, sheet_name = "SS_Values",header = None, names = colnames, skiprows = 1)
 T2 = pd.read_excel(reading_path, sheet_name = "Influent", header = 0)

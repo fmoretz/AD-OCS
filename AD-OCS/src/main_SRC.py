@@ -1,4 +1,5 @@
-''' Current version of AD_OCS model. Define the input according to the defined unit of measure from the spreadsheet.'''
+''' Current version of AD_OCS model. Define the input according to the defined unit of measure from the spreadsheet.
+    Define the timespan in hours.'''
 
 import math
 from pprint import pprint as pp
@@ -62,6 +63,15 @@ C  = YOUT[:,6]              # [mmol/L] - Inorganic Carbon Dissolved
 print('************** AD_OCS OK *******************')
 
 # Solver Output: from all the variables from the ones of the ODE
+mu1 = np.empty(len(XT))
+mu2 = np.empty(len(XT))
+CO2 = np.empty(len(XT))
+B   = np.empty(len(XT))
+phi = np.empty(len(XT))
+p_C = np.empty(len(XT))
+q_C = np.empty(len(XT))
+q_M = np.empty(len(XT))
+pH  = np.empty(len(XT))
 
 for x in range(len(t_span)):
     mu1[x] = mu_max[0]*(S1[x]/(S1[x]+Ks[0]))                     # [1/d]      - Specific Growth Rate for X1 (Monod)
