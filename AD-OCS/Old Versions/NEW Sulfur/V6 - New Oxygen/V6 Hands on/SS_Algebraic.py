@@ -1,11 +1,12 @@
 import numpy as np
 
-from Influent import*
+from dataimport import*
+
 from Identification import*
 def level_SS(t, D, Qin, SR, h0, t_change): 
 
   t_loc = t-t_change 
-  return h0*np.exp(-D/24*t_loc) + (1-np.exp(-D/24*t_loc))*Qin/24/(D*SR)
+  return h0*np.exp(-D/24*t_loc) + (1-np.exp(-D/24*t_loc))*Qin/(D*SR)
 
 mu1_SS = alfa*D + kd[0]
 mu2_SS = alfa*D + kd[1]
@@ -21,24 +22,24 @@ S2_SS   = (-b_coeff - delta**0.5)/2/a_coeff
 XT_SS   = XT_in*D/(D+k[6])
 
 X1_SS   = (D*(S1_in - S1_SS) + k[6]*XT_SS)/(k[0]*mu1_SS)
-X2_SS   = 1/(k[2]*mu2_SS)*(D*(S2_in - S2_SS) + k[1]/k[0]*(D*(S1_in - S1_SS) + k[6]*XT_SS));
+X2_SS   = 1/(k[2]*mu2_SS)*(D*(S2_in - S2_SS) + k[1]/k[0]*(D*(S1_in - S1_SS) + k[6]*XT_SS))
 
 q_M_SS  = k[5]*mu2_SS*X2_SS
 
 gamma   = (k[0]*N_S1 - N_bac)*mu1_SS*X1_SS - N_bac*mu2_SS*X2_SS + kd[0]*N_bac*X1_SS + kd[1]*N_bac*X2_SS
 Z_SS    = Z_in + gamma/D
 
-epsi    = D*(C_in + S2_SS - Z_SS) + k[3]*mu1_SS*X1_SS + k[4]*mu2_SS*X2_SS;
-om      = Pt*kLa*D*KH + kLa*epsi + q_M_SS*(kLa + D);
-Pc_SS   = (om - (om**2-4*kLa**2*epsi*Pt*D*KH)**0.5)/(2*kLa*D*KH);
-CO2_SS  = (epsi + kLa*KH*Pc_SS)/(kLa + D);
-C_SS    = CO2_SS + Z_SS - S2_SS;
-q_C_SS  = kLa*(CO2_SS - KH*Pc_SS);
+epsi    = D*(C_in + S2_SS - Z_SS) + k[3]*mu1_SS*X1_SS + k[4]*mu2_SS*X2_SS
+om      = Pt*kLa*D*KH + kLa*epsi + q_M_SS*(kLa + D)
+Pc_SS   = (om - (om**2-4*kLa**2*epsi*Pt*D*KH)**0.5)/(2*kLa*D*KH)
+CO2_SS  = (epsi + kLa*KH*Pc_SS)/(kLa + D)
+C_SS    = CO2_SS + Z_SS - S2_SS
+q_C_SS  = kLa*(CO2_SS - KH*Pc_SS)
 
 SSTATE  = [XT_SS, X1_SS, X2_SS, Z_SS, S1_SS, S2_SS, C_SS, CO2_SS, Pc_SS, q_M_SS, q_C_SS];
 
 
-h_SS = level_SS(1000*24, D, Q_in_0, SR, 0.1, 0)
+h_SS = level_SS(1000*24, D, 170, SR, 0.1, 0)
 
 
 print('\n STEADY STATE VALUES \n')

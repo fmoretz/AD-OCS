@@ -130,15 +130,15 @@ V_liq = np.zeros(len(t_span))                                 # [m3] - Liquid Vo
 
 for i in range(len(t_span)):
     t = t_span[i]    
-    if t < T3.index.values[index]:
+    if t < T3.index.values[index]*24:
         pass
 
-    elif t >= T3.index.values[-1]:
-        t_change = T3.index.values[index]  
+    elif t >= T3.index.values[-1]*24:
+        t_change = T3.index.values[index]*24  
         h0 = h[len(t_span[t_span < t_change])-1]
         
     else:    
-        t_change = T3.index.values[index]       
+        t_change = T3.index.values[index]*24       
         h0 = h[i-1]
         index = min(index + 1, len(T3.index.values)-1)  
                 

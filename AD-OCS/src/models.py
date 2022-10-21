@@ -39,12 +39,12 @@ def AD_OCS(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_ch
 
         for timestep in range(len(t_span_loc)):      # Iteration along t_span_loc
 
-            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/(t_span_loc[timestep] - t_span_loc[0]) # Calculate the local mu by the slope of the X2_upto curve
+            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/max(1e-14,(t_span_loc[timestep] - t_span_loc[0])) # Calculate the local mu by the slope of the X2_upto curve
             if np.isnan(mu_loc[timestep]):
                 mu_loc[timestep] = 0                # If the slope is nan, set it to 0
             rho_srb_loc[timestep] = growth_SRB(timestep, Xs_max, mu_loc[timestep], 0)  # Calculate the local SRB growth rate with the Gompertz derivative
             
-        print('t:',t)
+        print('t:',round(t,4))
         rho_srb = np.max(rho_srb_loc) # At each t take the maximum value of the local SRB growth rate, it is the "true" SRB growth rate to be used later                     
           
     else:
@@ -93,6 +93,6 @@ def AMOCO_HN(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_
     dS1 = D*(S1in - S1) - k[0]*mu1*X1 + k[6]*XT                                                      # Evolution of organic substrate
     dS2 = D*(S2in - S2) + k[1]*mu1*X1 - k[2]*mu2*X2                                                  # Evolution of VFA
     dC  = D*(Cin - C)   + k[3]*mu1*X1 + k[4]*mu2*X2 - qC                                             # Evolution of inorganic carbon
-
+    print('t:',round(t,4))
     dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dC]
     return dxdt

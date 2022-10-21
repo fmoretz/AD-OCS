@@ -80,8 +80,8 @@ Z_in  = B_in + S2_in*Ka/(Ka+10**(-pH_in))+N_in
 
 
 
-Q_in_0 = float(T2["Qin"])                              # [m3/d]    - Particulate COD in solution : XT           # [m3/d] - Influent flowrate
-water_percentage= float(T2["xW"])   # [-]    - Fraction standing for percentage of water in the influent
+Q_in_0 = float(T2["Qin"])                              # [m3/d]  - Influent flowrate
+water_percentage= float(T2["xW"])                       # [-]    - Fraction standing for percentage of water in the influent
 
 # Get the array of the influent concentrations and flowrate
 y_in_0  = np.array([S1_in, S2_in, C_in, Z_in, XT_in, Q_in_0])

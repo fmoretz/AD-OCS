@@ -1,27 +1,11 @@
-''' Contains ALL the functions to be called in the main code '''
+'''Here are present the model equations to be integrated:
+    AMOCO_HN: AM2 with modifications accounting for hydrolysis and nitrgoen kinetics: Ficara et al. (2012)
+    AD_OCS: AMOCOHN with kinetics for SRB and sulfur modelling. Own work.'''
+from dataimport import*
+from PhysConstants  import*
+from functions import deviations_check, growth_SRB
 
-from Influent import*
-
-# Level dynamics function
-def level_t(t, D, Qin, SR, h0, t_change):
-    ''' 
-    Function that returns the values of the liquid level at each time t.
-    h0 [m] is the initial level
-    t_change [h] is the time of the change in the influent flow - starts from zero
-    D [1/d] - Dilution Rate
-    Qin [m3/d] - Influent flow
-    SR [m2] - Surface of the reactor
-    '''
-    t_loc = t-t_change # [h] - Time from the start of the change
-    return h0*np.exp(-D/24*t_loc) + (1-np.exp(-D/24*t_loc))*Qin/(D*SR)
-
-def gompertz(x,a,b,c):                                                                      # Gompertz function
-    return a*np.exp(-np.exp(b*np.exp(1)/a*(c-x) - 1))
-
-def growth_SRB(x,a,b,c):                                                                    # Growth of SRB
-    return b*np.exp((np.exp(1)*b/a*(c-x))-np.exp(np.exp(1)*b/a*(c-x)+1)+2)
-
-def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_change_vett, X2_pre, t_span):   # Model deviations function
+def AD_OCS(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_change_vett, X2_pre, t_span):   # Model deviations function
     '''Main function used in the code: represents the AD-OCS model equations to be integrated'''   
     XT, X1, X2, Z, S1, S2, C = x
     
@@ -48,19 +32,19 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
     Xs_max = Y_srb/(1-Y_srb)*Ss_max             # maximum biomass concentration [gCOD/L] - by realtionship between Ss and Xs (microbioloigy)
     
     if t > t_0:        
-        t_span_loc = t_span[t_span < t]     # From t_span get the values smaller than t
-        X2_upto = X2_pre[t_span<t]          # From X2_pre (AMOCO_HN) get the values corresponding to t_span_loc
-        mu_loc = np.zeros(len(t_span_loc))  # Preallocation
-        rho_srb_loc = np.zeros(len(t_span_loc)) # Preallocation
+        t_span_loc = t_span[t_span < t]         # From t_span get the values smaller than t
+        X2_upto = X2_pre[t_span<t]              # From X2_pre (AMOCO_HN) get the values corresponding to t_span_loc
+        mu_loc = np.zeros(len(t_span_loc))           # Preallocation
+        rho_srb_loc = np.zeros(len(t_span_loc))      # Preallocation
 
-        for timestep in range(len(t_span_loc)): # Iteration along t_span_loc
+        for timestep in range(len(t_span_loc)):      # Iteration along t_span_loc
 
-            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/(t_span_loc[timestep] - t_span_loc[0]) # Calculate the local mu by the slope of the X2_upto curve
+            mu_loc[timestep] = (X2_upto[timestep] - X2_upto[0])/max(1e-14,(t_span_loc[timestep] - t_span_loc[0])) # Calculate the local mu by the slope of the X2_upto curve
             if np.isnan(mu_loc[timestep]):
-                mu_loc[timestep] = 0 # If the slope is nan, set it to 0
+                mu_loc[timestep] = 0                # If the slope is nan, set it to 0
             rho_srb_loc[timestep] = growth_SRB(timestep, Xs_max, mu_loc[timestep], 0)  # Calculate the local SRB growth rate with the Gompertz derivative
             
-        print('t:',t)
+        print('t:',round(t,4))
         rho_srb = np.max(rho_srb_loc) # At each t take the maximum value of the local SRB growth rate, it is the "true" SRB growth rate to be used later                     
           
     else:
@@ -80,7 +64,7 @@ def AD_OCS_Model(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_i
     return dxdt
 
 def AMOCO_HN(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_change_vett):   # Model deviations function
-    '''Main function used in the code: represents the AD-OCS model equations to be integrated'''   
+    '''Represents the AMOCO_HN model equations to be integrated'''   
     XT, X1, X2, Z, S1, S2, C = x
    
     XT_in_0 = y_in_0[4] # Initial value of the influent particulate
@@ -101,7 +85,6 @@ def AMOCO_HN(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_
     phi = CO2 + KH*Pt + qM/kLa
     Pc  = (phi - (phi**2- 4*KH*Pt*CO2)**0.5)/(2*KH)                                                  # [atm] - Partial pressure CO2
     qC  = kLa*(CO2 - KH*Pc)                                                                          # [mmol/L/d] - Carbon Molar Flow
-
           
     dXT = D*(XTin - XT) - k[6]*XT                                                                    # Evolution of particulate
     dX1 = (mu1 - alfa*D - kd[0])*X1                                                                  # Evolution of biomass 1 (acidogen.)
@@ -112,65 +95,4 @@ def AMOCO_HN(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_
     dC  = D*(Cin - C)   + k[3]*mu1*X1 + k[4]*mu2*X2 - qC                                             # Evolution of inorganic carbon
 
     dxdt = [dXT, dX1, dX2, dZ, dS1, dS2, dC]
-
     return dxdt
-
-def f_deviations(t_span, t_change_vett, y_in_0):
-    '''
-    Function to be called in the main code.
-    It returns the values of the deviated influents at each time t.
-    Needs: 
-    - t_span: time span of the simulation
-    - t_change_vett: vector of the times at which the influent changes, defined by excel spreadsheet
-    - y_in_0: vector of the initial values of the influent [S1in, S2in, Cin, Zin, XTin, Qin] and their measure units
-    - Matrix T3: matrix of the deviations to be applied to the influent, derived from the Excel spreadsheet
-    '''
-    y_influent = np.zeros((len(t_span), len(y_in_0))) # Defines the y_in values which will be used in the main
-
-    index = 0
-    t_change_loc = t_change_vett[index]                # Get the time when the first deviation is applied
-    scale_loc    = np.ones(len(y_in_0))    # Get the scale values for the first time change
-   
-    for i in range(len(t_span)):
-        t = t_span[i]
-        while True:
-            if t < t_change_loc:        
-                y_influent[i] = y_in_0*scale_loc
-                print(t, t_change_loc, scale_loc)
-                if i == (len(t_span)-1):  
-                    break
-                else:      
-                    i += 1
-                    t = t_span[i]
-            else:        
-                scale_loc    = T3.loc[t_change_loc].to_numpy()
-                print(f'*** CHANGE at: {t_change_loc} ***')
-                if index == (len(t_change_vett)-1):
-                    t_change_loc = np.inf
-                    print('Last Change done')
-                else:
-                    index = index+1        
-                    t_change_loc = t_change_vett[index]
-        return y_influent
-
-def deviations_check(t, original, t_change_vett):
-    '''Defines the deviation to be used in the ODE integration'''
-    deviated = np.zeros(len(original)) 
-    i = 0    
-    while True: 
-        if t < t_change_vett[0]: # if the time is before the first time change then the original values are used
-            scale = 1
-            break
-        if t >= t_change_vett[-1]: # if the time is after the last time change then the last values are used
-            t_change = t_change_vett[-1]
-            scale = T3.loc[t_change].to_numpy()
-            break
-        if t > t_change_vett[i] and t < t_change_vett[i+1]:
-            t_change = t_change_vett[i]
-            scale = T3.loc[t_change].to_numpy()
-            break
-        else:
-            i = i+1            
-          
-    deviated = original*scale           
-    return deviated

@@ -12,14 +12,15 @@ from SS_Algebraic import*
 from dataimport import*
 from PhysConstants  import*
 
-from functions import gompertz, growth_SRB, f_deviations, deviations_check, level_t
+from functions import gompertz, growth_SRB, f_deviations, deviations_check, level_t, headspace_dynamics_discr, headspace_dynamics_discr_V2
 from models import AD_OCS, AMOCO_HN
 from mix_real_gas import f_VL_realgas
 
+
 # System definition
 d_start = 0         # [h] - Start time
-d_end   = 120       # [h] - End time
-hours   = 0.5       # [h] - Discretization time
+d_end   = 60        # [h] - End time
+hours   = .1     # [h] - Discretization time
 n_times = int((d_end-d_start)/hours)+1 # Number of time steps
 
 print('***Intervals of {hours} hours. \n {n_times} time steps***'.format(hours=hours, n_times=n_times))
@@ -40,7 +41,6 @@ y0= [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]
 
 YOUT_pre = odeint(AMOCO_HN, y0, t_span_d, hmax = (t_span_d[1]-t_span_d[0]), args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values))
 X2_pre = YOUT_pre[:,2]
-
 print('************** AMOCOHN OK *******************')
 
 # --------------------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ print('************** AMOCOHN OK *******************')
 
 y0 = [SSTATE[0], SSTATE[1], SSTATE[2], SSTATE[3], SSTATE[4], SSTATE[5], SSTATE[6]] # initial conditions esxkcdlished from SS
 
-YOUT = odeint(AD_OCS, y0, t_span_d, hmax = (t_span_d[1]-t_span_d[0]), args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span))
+YOUT = odeint(AD_OCS, y0, t_span_d, hmax = (t_span_d[1]-t_span_d[0]), args=(alfa, mu_max, Ks, KI2, KH, Pt, kLa, D, k, kd, N_bac, N_S1, y0[2], t_span[0], y_in_0, T3.index.values, X2_pre, t_span_d))
 
 # Get results
 XT = YOUT[:,0]              # [gCOD/L] - Particulate 
@@ -86,11 +86,6 @@ for x in range(len(t_span)):
 
 q_tot = q_C + q_M                                                # [mmol/L/d] - Outlet global molar flow  
 
-# plt.plot(t_span, q_M, 'r', label='CH4')
-# plt.plot(t_span, q_C, 'b', label='CO2')
-# plt.plot(t_span, q_tot, 'k', label='Total')
-# plt.legend()
-# plt.show()
 
 # Sulfur and Oxygen Influence Evaluation
 
@@ -114,7 +109,7 @@ for j in range(len(t_span)):
     # Gompertz function for microbial population and dissolved sulfur
     mu_srb[j] = (- X2[0] + X2[j])/max(1e-14,t_span[j]-t_span[0])      # [g/L/d]    - Gompertz parameter for SRB growth
     Xs[j]  = gompertz(t_span[j], Xs_max[j], mu_srb[j], lam)           # [g/L]      - Sulfate Reducing Bacteria - Gompertz
-    Ss[j]  = Xs[j]*(1-Y_srb)/(Y_srb)                                  # [g/L]      - Sulfur dissolved concentration
+    Ss[j]  = Xs[j]*(1-Y_srb)/(Y_srb)                                  # [mmol/L]      - Sulfur dissolved concentration
         
     for snapshot in range(len(t_span)):        
         mu_srb_loc = np.nan_to_num((- X2[0] + X2[snapshot])/(max(1e-14,t_span[snapshot] - t_span[0])), nan=0, neginf=0)    # [g/L/d]    - Gompertz parameter for SRB growth, local  
@@ -134,15 +129,15 @@ V_liq = np.zeros(len(t_span))                                 # [m3] - Liquid Vo
 
 for i in range(len(t_span)):
     t = t_span[i]    
-    if t < T3.index.values[index]:
+    if t < T3.index.values[index]*24:
         pass
 
-    elif t >= T3.index.values[-1]:
-        t_change = T3.index.values[index]  
+    elif t >= T3.index.values[-1]*24:
+        t_change = T3.index.values[index]*24  
         h0 = h[len(t_span[t_span < t_change])-1]
         
     else:    
-        t_change = T3.index.values[index]       
+        t_change = T3.index.values[index]*24       
         h0 = h[i-1]
         index = min(index + 1, len(T3.index.values)-1)  
                 
@@ -212,23 +207,11 @@ for t in range(len(t_span)):
         Q_L[t,i] = N_L[t,i]*MW_vett[i]/rho_vett[i]/1000            # [m3/h]   - Liquid Volumetric Flow of species i
         Q_V[t,i] = N_V[t,i]*MW_vett[i]/rho_vett[i]/1000            # [m3/h]   - Vapor Volumetric Flow of species i
 
-plt.plot(t_span, N_V[:,0], label = 'Methane')
-plt.plot(t_span, N_V[:,1], label = 'Carbon Dioxide')
-
-plt.xlabel('Time [h]')
-plt.ylabel('Volumetric Flow [m3/h]')
-plt.legend()
-plt.show()
 
 #### Evaluation of the Oxygen effect equilibrium effects on the system: CSTR behaviour ####
 # IN: N_V[M, C, S, W] + N_in_O2
 # OUT: N_out[M, C, S, W, O]
 
-n_out_M = np.zeros(len(t_span))                               # [mol/h] - Methane Flow
-n_out_C = np.zeros(len(t_span))                               # [mol/h] - Carbon Flow
-n_out_S = np.zeros(len(t_span))                               # [mol/h] - Sulfur Flow
-n_out_W = np.zeros(len(t_span))                               # [mol/h] - Water Flow
-n_out_O = np.zeros(len(t_span))                               # [mol/h] - Oxygen Flow
 
 RC = 1.8                                                        # [gS/gO2]     - Stoichiometry of the reaction
 alfa = 1                                                        # [-] - Power for sulfur concentration
@@ -237,240 +220,39 @@ k_SOB = 0.6                                                     # [1/m3/h*(gS*gO
 r_vett = np.zeros(len(t_span))                                  # [mg/L/min] - Reaction rate
 S_vett = np.zeros((len(t_span),4))                              # [mg/L] - Sulfur concentration
 
+V_gas = ((V_reactor - V_liq) + V_headspace)
 
-# def headspace_dynamics(x, t, N_in, N_in_O2, V_gas):
-#     global k_SOB, alfa, beta
-#     n_in_M = N_in[0]                                            # [mol/h] - Methane Flow
-#     n_in_C = N_in[1]                                            # [mol/h] - Carbon Flow
-#     n_in_S = N_in[2]                                            # [mol/h] - Sulfur Flow
-#     n_in_W = N_in[3]                                            # [mol/h] - Water Flow
-#     n_in_O = N_in_O2                                         # [mol/h] - Oxygen Flow
-    
-#     n_M = x[0]                                                    # [mol/h] - Methane Flow
-#     n_C = x[1]                                                    # [mol/h] - Carbon Flow
-#     n_S = x[2]                                                    # [mol/h] - Sulfur Flow
-#     n_W = x[3]                                                    # [mol/h] - Water Flow
-#     n_O = x[4]                                                    # [mol/h] - Oxygen Flow
-#     n_Sx = x[5]                                                   # [mol/h] - Sulfur solid
+tau_headspace = V_gas/Q_V.sum(1)                            # [h] - Time to fill the headspace
 
-#     y_M = n_M/(n_M+n_C+n_S+n_W+n_O)                               # [-] - Methane Molar Fraction
-#     y_C = n_C/(n_M+n_C+n_S+n_W+n_O)                               # [-] - Carbon Molar Fraction
-#     y_S = n_S/(n_M+n_C+n_S+n_W+n_O)                               # [-] - Sulfur Molar Fraction
-#     y_W = n_W/(n_M+n_C+n_S+n_W+n_O)                               # [-] - Water Molar Fraction
-#     y_O = n_O/(n_M+n_C+n_S+n_W+n_O)                               # [-] - Oxygen Molar Fraction
+N_in_O2 = 0.5*N_V[:,2] # [mol/h] - Oxygen Flow with respect to sulfur flow
+headspace_dict = {}
+digester_out = pd.DataFrame()
 
-#     C_O = y_O*P_dig/(Rgas_L_atm_K*T)                          # [mol/L] - Oxygen Concentration
-#     C_S = y_S*P_dig/(Rgas_L_atm_K*T)                          # [mol/L] - Sulfur Concentration    
-
-#     S_S = C_S*MW_S*1e+3                                    # [g/m3] - Sulfur Concentration
-#     S_O = C_O*MW_O*1e+3                                    # [g/m3] - Oxygen Concentration
-
-#     dMdt = n_in_M - n_M
-#     dCdt = n_in_C - n_C
-#     dSdt = n_in_S - n_S - 2*k_SOB*(S_S**alfa)*(S_O**beta)*V_gas
-#     dWdt = n_in_W - n_W + 2*k_SOB*(S_S**alfa)*(S_O**beta)*V_gas
-#     dOdt = n_in_O - n_O -   k_SOB*(S_S**alfa)*(S_O**beta)*V_gas
-#     dSxdt =               2*k_SOB*(S_S**alfa)*(S_O**beta)*V_gas
-
-#     return [dMdt, dCdt, dSdt, dWdt, dOdt, dSxdt]
-
-# N_in_O2 = 0.5*N_V[:,2]                                                      # [mol/h] - Oxygen Flow proportional to the sulfur flow
-# tau_headspace = ((V_reactor - V_liq[:]) + V_headspace)/Q_V[0,:].sum()       # [h] - Residence time of the headspace
-# t_span_headspace = np.linspace(0, tau_headspace[0], 1000)                   # [h] - Time vector for the headspace dynamics
-# V_gas = ((V_reactor - V_liq) + V_headspace)
-# n_0_headspace = np.hstack((N_V[0,:], N_in_O2[0],0))                         # [mol/h] - Initial conditions for the headspace dynamics
-# N_headspace = odeint(headspace_dynamics, n_0_headspace, t_span_headspace, args=(N_V[0,:], N_in_O2[0], V_gas[0]))
-
-# # plt.plot(t_span_headspace, N_headspace[:,0], label='CH4')
-# # plt.plot(t_span_headspace, N_headspace[:,1], label='CO2')
-# plt.plot(t_span_headspace, N_headspace[:,2], label='H2S')
-# #plt.plot(t_span_headspace, N_headspace[:,3], label='H2O')
-# plt.plot(t_span_headspace, N_headspace[:,4], label='O2')
-# #plt.plot(t_span_headspace, N_headspace[:,5], label='Sx')
-# plt.legend()
-# plt.xlim([0, 0.1])
-# plt.show()
-
-
-
-
-
-for i in range(len(t_span)):   
-    n_S_in = N_V[i,2]               # [mol/h] - Influent Sulfur flowrate
-    n_O2_in = 1*n_S_in            # [mol/h] - Influent Oxygen flowrate
-
-    def Headspace_reactions(y):
-        global RC, V_gas, k_SOB, alfa, beta
-        n_S =  y[0]                             # [mol/h] - Sulfur flowrate
-        n_O2 = y[1]                              # [mol/h] - Oxygen flowrate  
-      
-        n_out = N_V[i,0]+N_V[i,1]+N_V[i,3] + n_S + n_O2 # [mol/h] - Total Outflow
-        
-        y_S_in = n_S_in/(sum(N_V[i,:])+n_O2_in)         # [-] - Sulfur molar fraction in the inflow
-        y_O_in = n_O2_in/(sum(N_V[i,:])+n_O2_in)        # [-] - Sulfur molar fraction in the inflow
-
-        y_S_loc = n_S/n_out                     # [-] - Sulfur fraction in the headspace
-        y_O2_loc = n_O2/n_out                   # [-] - Oxygen fraction in the headspace       
-        
-        C_S  = y_S_loc*P_dig/(Rgas_L_atm_K*T)   # [mol/L] - Sulfur concentration in gas phase atm/(L*atm/mol/K*L) = mol/L
-        C_O2 = y_O2_loc*P_dig/(Rgas_L_atm_K*T)  # [mol/L] - Oxygen concentration in gas phase
-
-        S_S = C_S*MW_S*1e+3                     # [g/m3] - Sulfur concentration in gas phase
-        S_O2 = C_O2*MW_O*1e+3                   # [g/m3] - Oxygen concentration in gas phase
-
-        r_SOB = k_SOB*(S_S**alfa)*(S_O2**beta)                     # [gS/m3/h] - Reaction rate SOB
-       
-        V_gas = ((V_reactor - V_liq[i]) + V_headspace)
-        
-        BM_S  = n_S_in     - n_S  - V_gas*r_SOB/MW_S            # [mol/h]   - Sulfur Balance
-        BM_O2 = n_O2_in    - n_O2 - V_gas*r_SOB/RC/MW_O         # [mol/h]   - Oxygen Balance
-        
-        if BM_S and BM_O2 < 1e-10:
-            r_vett[i] = r_SOB/60                                    # [mg/L/min] - Reaction rate
-            S_vett[i,0] = S_S                                       # [mg/L] - Sulfur concentration
-            S_vett[i,1] = y_S_in*P_dig/(Rgas_L_atm_K*T)*MW_S*1e+3   # [mg/L] - Influent conc of Sulfur
-            S_vett[i,2] = S_O2                                      # [mg/L] - O2 concentration
-            S_vett[i,3] = y_O_in*P_dig/(Rgas_L_atm_K*T)*MW_O*1e+3   # [mg/L] - Influent conc of Sulfur
-            # print('r = ', r_SOB/60,'[mg/L/min]')
-            # print('S_S,in = ', y_S_in*P_dig/(Rgas_L_atm_K*T)*MW_S*1e+3,'[mg/L]', 'S_O2,in', y_O_in*P_dig/(Rgas_L_atm_K*T)*MW_O*1e+3,'[mg/L]')
-            # print('S_S = ', S_S,'[mg/L]', 'S_O2 = ', S_O2,'[mg/L]')
-        return [BM_S, BM_O2]
-
-    y0 = [n_S_in/100, n_O2_in/10]
-    [n_out_S[i], n_out_O[i]] = fsolve(Headspace_reactions, y0)
-    
-print('Avg r = ', np.mean(r_vett)*24*60,'[mg/L/d]')
-tau_headspace = ((V_reactor - V_liq[:]) + V_headspace)/Q_V[0,:].sum() # [h] - Residence time of the headspace
-print('Res. time headspace: ',tau_headspace[0],'[h]')
-# n_out_M = N_V[:,0]
-n_out_C = N_V[:,1]
-n_out_W = N_V[:,3]
-
-N_out = np.zeros((len(t_span), 5))
-y_out = np.zeros((len(t_span), 5))
-w_out = np.zeros((len(t_span), 5))
-MW_vett_new = [MW_M, MW_C, MW_S, MW_W, MW_O]
-
-t_span_delayed = t_span + tau_headspace # [h] - Time vector with the delay of the headspace
-for t in range(len(t_span)):
-    
-    N_out[t,0] = n_out_M[t]
-    N_out[t,1] = n_out_C[t]
-    N_out[t,2] = n_out_S[t]
-    N_out[t,3] = n_out_W[t]
-    N_out[t,4] = n_out_O[t]
-    for s in range(n_species+1):
-        y_out[t,s] = N_out[t,s]/(N_out[t,:].sum())
-
-effic = (1-n_out_S[:]/N_V[:,2])*100     
-color_S = 'goldenrod'
-
-plt.subplot(3,1,1)
-plt.plot(t_span_delayed, y_out[:,4], label = 'Oxygen')
-plt.plot(t_span_delayed, y_out[:,2], color= color_S, label = 'Sulfur')
-plt.plot(t_span_delayed, y_i[:,2], ':', color= color_S,  label = 'H2S Pre treatment')
-plt.ylabel('Molar Fraction [-]')
-plt.legend()
-plt.subplot(3,1,2)
-plt.plot(t_span_delayed, N_V[:,2], ':', color = color_S, label = 'Sulfur Pre')
-plt.plot(t_span_delayed, N_out[:,2],  color= color_S,  label = 'Sulfur')
-plt.plot(t_span_delayed, N_out[:,4],  label = 'Oxygen')
-plt.legend()
-
-plt.ylabel('Molar Flowrate [mol/h]')
-plt.subplot(3,1,3)
-plt.plot(t_span_delayed, effic, color= 'green')
-plt.xlabel('Time [h]')
-plt.ylabel('Efficiency [%]')
-
-
-plt.figure()
-plt.subplot(2,1,1)
-plt.plot(t_span_delayed, r_vett)
-plt.xlabel('Time [h]')
-plt.ylabel('Reaction rate [mg/L/min]')
-plt.subplot(2,1,2)
-plt.plot(t_span_delayed, S_vett[:,0], color= color_S, label = 'Sulfur')
-plt.plot(t_span_delayed, S_vett[:,1], ':', color= color_S, label = 'Sulfur in')
-plt.plot(t_span_delayed, S_vett[:,2], color = 'tab:blue', label = 'Oxygen')
-plt.plot(t_span_delayed, S_vett[:,3],':', color = 'tab:blue', label = 'Oxygen in')
-plt.xlabel('Time [h]')
-plt.ylabel('Concentration [mgX/L]')
-plt.legend()
-
-plt.figure()
-plt.plot(t_span_delayed, tau_headspace)
-plt.show()
-
-# # print('\n*** RESULTS AT t = 0 ***')
-# # print('\n alpha_flash: {:.6f}'.format(alpha_flash[0]))
-
-# # print('\nLiquid flow: {:.2f} mol/h'.format(N_L_tot[0]))
-# # print('Liquid flow: {:.2f} mol/h'.format(N_L_tot[0]))
-# # print('\n Molar fractions in the liquid phase: \n\
-# #     CH4: {:.6f} \n\
-# #     CO2: {:.6f} \n\
-# #     H2S: {:.6f} \n\
-# #     H20: {:.6f}'.format(x_i[0,0], x_i[0,1], x_i[0,2], x_i[0,3]))
-# # print('\n Molar fractions in the vapor phase: \n\
-# #     CH4: {:.6f} \n\
-# #     CO2: {:.6f} \n\
-# #     H2S: {:.6f} \n\
-# #     H20: {:.6f}'.format(y_i[0,0], y_i[0,1], y_i[0,2], y_i[0,3])) 
-
+for ind in range(len(t_span)):
+    t_cstr = np.arange(0,tau_headspace[ind],hours)
+    while ind < (len(t_span)-len(t_cstr)):              
+        N, r = headspace_dynamics_discr_V2(N_V[ind:(ind+len(t_cstr)),:], N_in_O2[ind:(ind+len(t_cstr))], P_dig, T, V_gas[ind:(ind+len(t_cstr))], t_cstr)
+        headspace_dict[ind]= {'t_in': t_span[ind],'t_cstr': t_cstr, 'H2S': N['H2S'], 'H2O': N['H2O'], 'O2': N['O2'], 'SX': N['SX'], 'r_sob': r} # stores the results of the CSTR dynamics at each iteration, r [mg/L/h], N [mol/h]
+        digester_out = digester_out.append(pd.DataFrame({'t_in': t_span[ind],'t': (t_span[ind]+tau_headspace[ind]),'CH4': N_V[ind,0], 'CO2': N_V[ind,1], 'H2S': N['H2S'][-1], 'H2O': N['H2O'][-1], 'O2': N['O2'][-1], 'r_avg': (r.mean()*24)}, index=[ind]))
+        break
+digester_out['efficiency'] = (1-digester_out['H2S'] / N_V[0:len(digester_out),2])*100
 # plt.figure()
 # plt.subplot(2,1,1)
-# plt.plot(t_span, x_i[:,0], label='Methane')
-# plt.plot(t_span, x_i[:,1], label='CO2')
-# plt.plot(t_span, x_i[:,2], label='Sulfur')
-# plt.plot(t_span, x_i[:,3], label='Water')
+# plt.plot(digester_out['t'], digester_out['CH4'], label='CH4')
+# plt.plot(digester_out['t'], digester_out['CO2'], label='CO2')
+# plt.plot(digester_out['t'], digester_out['H2O'], label='H2O')
 # plt.legend()
-# plt.xlabel('Time [h]')
-# plt.ylabel('Molar Fraction [-]')
-# plt.title('Liquid Phase')
+# plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
+# plt.xticks(rotation=45)
 # plt.subplot(2,1,2)
-# plt.plot(t_span, y_i[:,0], label='Methane')
-# plt.plot(t_span, y_i[:,1], label='CO2')
-# plt.plot(t_span, y_i[:,2], label='Sulfur')
-# plt.plot(t_span, y_i[:,3], label='Water')
+# plt.plot(digester_out['t'], digester_out['H2S'], label='H2S')
+# plt.plot(digester_out['t'], digester_out['O2'], label='O2')
 # plt.legend()
-# plt.xlabel('Time [h]')
-# plt.ylabel('Molar Fraction [-]')
-# plt.title('Vapor Phase')
+# plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
+# plt.xticks(rotation=45)
+
 
 # plt.figure()
-# plt.subplot(2,1,1)
-# plt.plot(t_span, h)
-# plt.title('Level of liquid in the digester')
-# plt.grid()
-# plt.xlabel('Time [h]')
-# plt.ylabel('Liquid Level [m]')
-# plt.subplot(2,1,2)
-# plt.plot(t_span, Q_in)
-# plt.title('Influent flow rate')
-# plt.grid()
-# plt.xlabel('Time [h]')
-# plt.ylabel('Flow rate [m3/h]')
-
-# plt.figure()
-# plt.subplots_adjust(hspace=.5, top=0.9, bottom=0.05)
-# plt.subplot(4,1,1)
-# plt.title('Methane')
-# plt.plot(t_span, N_V[:,0], label='Methane')
-# plt.ylabel('Molar flow [mol/h]')
-# plt.subplot(4,1,2)
-# plt.title('Carbon Dioxide')
-# plt.plot(t_span, N_V[:,1], label='CO2')
-# plt.ylabel('Molar flow [mol/h]')
-# plt.subplot(4,1,3)
-# plt.title('Hydrogen Disulfide')
-# plt.plot(t_span, N_V[:,2], label='Sulfur')
-# plt.ylabel('Molar flow [mol/h]')
-# plt.subplot(4,1,4)
-# plt.title('Water')
-# plt.plot(t_span, N_V[:,3], label='Water')
-# plt.ylabel('Molar flow [mol/h]')
-
-# # plt.show()
-
-
+# plt.plot(digester_out['t'], digester_out['CH4']/(digester_out['CH4']+digester_out['CO2']), label='CH4')
+# plt.plot(digester_out['t'], digester_out['CO2']/(digester_out['CH4']+digester_out['CO2']), label='CO2')
+print(Ss)

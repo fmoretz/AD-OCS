@@ -5,7 +5,7 @@ from Identification import*
 def level_SS(t, D, Qin, SR, h0, t_change): 
 
   t_loc = t-t_change 
-  return h0*np.exp(-D/24*t_loc) + (1-np.exp(-D/24*t_loc))*Qin/(D*SR)
+  return h0*np.exp(-D/24*t_loc) + (1-np.exp(-D/24*t_loc))*Qin/24/(D*SR)
 
 mu1_SS = alfa*D + kd[0]
 mu2_SS = alfa*D + kd[1]

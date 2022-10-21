@@ -76,16 +76,16 @@ fun = 1/(1+10**(pH-pKb))
 X3r = CO2 - KH*P_C
 Y3r = q_C
 
-mdl31= LinearRegression(fit_intercept=True).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
-mdl32= LinearRegression(fit_intercept=False).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
+mdl31= LinearRegression(fit_intercept=True, positive=True).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
+mdl32= LinearRegression(fit_intercept=False, positive=True).fit(np.array(X3r).reshape(-1,1), np.array(Y3r))
 score31 = mdl31.score(np.array(X3r).reshape(-1,1), np.array(Y3r))
 score32 = mdl32.score(np.array(X3r).reshape(-1,1), np.array(Y3r))
 
 if score31 > score32:
-    kLa = abs(mdl31.coef_)
+    kLa = mdl31.coef_
     mdl3 = mdl31
 else:
-    kLa = abs(mdl32.coef_)
+    kLa = mdl32.coef_
     mdl3 = mdl32
 int3 = mdl3.intercept_
 

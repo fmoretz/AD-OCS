@@ -716,8 +716,8 @@ for i in range(len(HRT_vett)):
     simulate_results['pH'] = phlogarray
     print('CHECK 2')
     print(q_ad)
-    SS_values = simulate_results.iloc[-1]
-    SS_gas = gasflow.iloc[-1]
+    SS_values = simulate_results.iloc[-2000:-1].mean() # steady state values =========================== !!!!!! ACCOUNT FOR CALCULATION ISSUES
+    SS_gas = gasflow.iloc[-2000:-1].mean()
     if i == 0:      
       df_SS = pd.DataFrame([SS_values], columns = columns)
       df_SS_gas = pd.DataFrame([SS_gas], columns = gascolumns)
