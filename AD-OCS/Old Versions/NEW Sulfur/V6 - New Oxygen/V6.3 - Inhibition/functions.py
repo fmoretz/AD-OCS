@@ -396,8 +396,8 @@ def headspace_dynamics_discr(Nin, Nin_O2, P, T, Vgas, t):
         'O2':  np.zeros(len(t))
     } # mol/hours
 
-    n_out_inhib = np.zeros(len(t))
-    I_O2 = np.zeros(len(t))
+    # n_out_inhib = np.zeros(len(t))
+    # I_O2 = np.zeros(len(t))
     
 
     n_out['H2S'][0] = n_in['H2S'][0]
@@ -413,8 +413,8 @@ def headspace_dynamics_discr(Nin, Nin_O2, P, T, Vgas, t):
     m_out['H2S'][0] = c_out['H2S'][0] * PM['H2S'] * 1000 # g/m3
     m_out['O2'][0]  = c_out['O2'][0]  * PM['O2'] * 1000 # g/m3
 
-    I_O2[0] = 1/(1+m_out['O2'][0]/KI_O2/1000)
-    n_out_inhib[0] = Nin[0,0]*I_O2[0]
+    # I_O2[0] = 1/(1+m_out['O2'][0]/KI_O2/1000)
+    # n_out_inhib[0] = Nin[0,0]*I_O2[0]
     r_SOB = np.zeros(len(t))
     r_SOB[0] = (k * m_out['H2S'][0]**alfa * m_out['O2'][0]**beta) # gS/m3/h
      
@@ -432,8 +432,8 @@ def headspace_dynamics_discr(Nin, Nin_O2, P, T, Vgas, t):
 
         r_SOB[i] = (k * m_out['H2S'][i-1]**alfa * m_out['O2'][i-1]**beta) # gS/m3/h
 
-        I_O2[i] = 1/(1+m_out['O2'][i-1]/KI_O2/1000) 
-        n_out_inhib[i] = Nin[i,0]*I_O2[i]
+        # I_O2[i] = 1/(1+m_out['O2'][i-1]/KI_O2/1000) 
+        # n_out_inhib[i] = Nin[i,0]*I_O2[i]
 
         n_out['H2S'][i] = (n_in['H2S'][i]*dt + (n_out['H2S'][i-1])  - r_SOB[i]*dt* Vgas[i] / PM['H2S'])/(1+dt)
         n_out['O2'][i]  = (n_in['O2'][i]*dt  + (n_out['O2'][i-1])   - r_SOB[i]*dt* Vgas[i] / (2 * PM['O2']))/(1+dt)
@@ -441,7 +441,7 @@ def headspace_dynamics_discr(Nin, Nin_O2, P, T, Vgas, t):
         
         n_out['H2O'][i] = n_in['H2O'][i] + (n_out['H2S'][i-1] - n_in['H2S'][i]) # n_in['H2O'] + nu['H2O'] * (k * m_out['H2S'][i]**alfa * m_out['O2'][i]**beta)*( dt/(1+dt) ) * Vgas /
     
-    return n_out, r_SOB, n_out_inhib, I_O2
+    return n_out, r_SOB 
 
 
 

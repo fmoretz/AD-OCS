@@ -9,12 +9,9 @@ datasets = ["amoco_HN","provaADM1", "bsm2","matlab"]
 simname  = datasets[int(name_index) -1]
 print("Data are from:",simname)
 
-# filename: Path = simname + '.xlsx'
-# folder: Path = Path(Path.cwd())
-# folder: Path = folder.joinpath('Working data')
-folder = r'C:\Users\fede1\OneDrive - Politecnico di Milano\Documenti\GitHub\AD-OCS\Working_data'
-print(folder)
-reading_path =  (folder + "\\" + simname + '.xlsx')
+filename =simname + '.xlsx'
+p = Path.cwd()
+reading_path = p.parent.parent.parent / 'Working_data' / filename # Path to the file -  check that it correctly goes back tot the appropriate parent folder
 
 
 colnames = ["HRT", "XT", "S1", "S2", "X1", "X2", "C", "Z", "CO2", "B", "pH", "P_C", "q_C", "q_CH4"]

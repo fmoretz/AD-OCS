@@ -79,7 +79,7 @@ plt.plot(t_span, rho_srb)
 
 # plt.plot(t_span, mu_max_srb,'--')
 plt.xlabel('Time [d]')
-plt.ylabel('X growt [g/L/d]')
+plt.ylabel('X growth [g/L/d]')
 
 plt.subplot(4,1,3)
 plt.grid(True)

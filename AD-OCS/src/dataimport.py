@@ -2,20 +2,16 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-print('Choose a datasets: \n 1 -> AMOCO_HN \n 2 -> provaADM1 \n 3 -> bsm2 \n 4 -> matlab')
-name_index = 1# input("->")
+print('Choose a datasets: \n 1 -> AMOCO_HN  \n 2 -> matlab - bsm2 \n 3 -> thoni')
+name_index = input("->")
 
-datasets = ["amoco_HN","provaADM1", "bsm2","matlab"]
+datasets = ["amoco_HN","matlab", "thoni"]
 simname  = datasets[int(name_index) -1]
 print("Data are from:",simname)
 
-# filename: Path = simname + '.xlsx'
-# folder: Path = Path(Path.cwd())
-# folder: Path = folder.joinpath('Working data')
-folder = r'C:\Users\fede1\OneDrive - Politecnico di Milano\Documenti\GitHub\AD-OCS\Working_data'
-print(folder)
-reading_path =  (folder + "\\" + simname + '.xlsx')
-
+filename =simname + '.xlsx'
+p = Path.cwd()
+reading_path = p.parent.parent.parent / 'Working_data' / filename # Path to the file -  check that it correctly goes back tot the appropriate parent folder
 
 colnames = ["HRT", "XT", "S1", "S2", "X1", "X2", "C", "Z", "CO2", "B", "pH", "P_C", "q_C", "q_CH4"]
 
@@ -80,8 +76,8 @@ Z_in  = B_in + S2_in*Ka/(Ka+10**(-pH_in))+N_in
 
 
 
-Q_in_0 = float(T2["Qin"])                              # [m3/d]    - Particulate COD in solution : XT           # [m3/d] - Influent flowrate
-water_percentage= float(T2["xW"])   # [-]    - Fraction standing for percentage of water in the influent
+Q_in_0 = float(T2["Qin"])                              # [m3/d]  - Influent flowrate
+water_percentage= float(T2["xW"])                       # [-]    - Fraction standing for percentage of water in the influent
 
 # Get the array of the influent concentrations and flowrate
 y_in_0  = np.array([S1_in, S2_in, C_in, Z_in, XT_in, Q_in_0])

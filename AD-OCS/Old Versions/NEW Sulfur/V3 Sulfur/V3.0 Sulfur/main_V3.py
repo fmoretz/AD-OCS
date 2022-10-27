@@ -16,7 +16,7 @@ from functions_V3 import gompertz, growth_SRB, AD_OCS_Model, AMOCO_HN, f_deviati
 # System definition
 t_span = np.linspace(0,200,300) # time span [d]
 
-y_influent = f_deviations(t_span, T3.index.values, y_in_0) # Get the deviated influent values at each timestamp
+y_influent = f_deviations(t_span, T3.index.values, y_in_0[:5]) # Get the deviated influent values at each timestamp
 
 # --------------------------------------------------------------------------------------------
 # Ode Integration of AMOCO_HN: used to get X2 

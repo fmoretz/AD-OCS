@@ -20,7 +20,7 @@ from mix_real_gas import f_VL_realgas
 # System definition
 d_start = 0         # [h] - Start time
 d_end   = 60        # [h] - End time
-hours   = .1     # [h] - Discretization time
+hours   = .25     # [h] - Discretization time
 n_times = int((d_end-d_start)/hours)+1 # Number of time steps
 
 print('***Intervals of {hours} hours. \n {n_times} time steps***'.format(hours=hours, n_times=n_times))
@@ -103,7 +103,7 @@ lam = 0                                                         # [-]        - L
 for j in range(len(t_span)):
     # Iterate over each time step
     
-    Ss_max[j] = frac_sulfur*y_influent[j,4]*1000/64*S2[j]/y_influent[0,4]
+    Ss_max[j] = frac_sulfur*1000/64*S2[j]           #/y_influent[0,4]*y_influent[j,4]
     Xs_max[j] = Y_srb/(1-Y_srb)*Ss_max[j]     
     
     # Gompertz function for microbial population and dissolved sulfur
@@ -143,12 +143,12 @@ for i in range(len(t_span)):
                 
     h[i] = level_t(t, D, Q_in[i], SR, h0, t_change)
     V_liq[i] = np.pi*Dr**2*h[i]/4                             # [m3] - Liquid Volum
-    if h[i] > hmax:
-        print('!!! Level is too high !!!')
-        input('Press Enter to continue')
-    elif h[i] < hmin:
-        print('!!! Level is too low !!!')
-        input('Press Enter to continue')
+    # if h[i] > hmax:
+    #     print('!!! Level is too high !!!')
+    #     input('Press Enter to continue')
+    # elif h[i] < hmin:
+    #     print('!!! Level is too low !!!')
+    #     input('Press Enter to continue')
         
 #### Evaluation of the G/L equilibrium effects on the system ####
 
@@ -228,31 +228,32 @@ N_in_O2 = 0.5*N_V[:,2] # [mol/h] - Oxygen Flow with respect to sulfur flow
 headspace_dict = {}
 digester_out = pd.DataFrame()
 
+
 for ind in range(len(t_span)):
     t_cstr = np.arange(0,tau_headspace[ind],hours)
     while ind < (len(t_span)-len(t_cstr)):              
-        N, r = headspace_dynamics_discr_V2(N_V[ind:(ind+len(t_cstr)),:], N_in_O2[ind:(ind+len(t_cstr))], P_dig, T, V_gas[ind:(ind+len(t_cstr))], t_cstr)
+        N, r = headspace_dynamics_discr(N_V[ind:(ind+len(t_cstr)),:], N_in_O2[ind:(ind+len(t_cstr))], P_dig, T, V_gas[ind:(ind+len(t_cstr))], t_cstr)
         headspace_dict[ind]= {'t_in': t_span[ind],'t_cstr': t_cstr, 'H2S': N['H2S'], 'H2O': N['H2O'], 'O2': N['O2'], 'SX': N['SX'], 'r_sob': r} # stores the results of the CSTR dynamics at each iteration, r [mg/L/h], N [mol/h]
         digester_out = digester_out.append(pd.DataFrame({'t_in': t_span[ind],'t': (t_span[ind]+tau_headspace[ind]),'CH4': N_V[ind,0], 'CO2': N_V[ind,1], 'H2S': N['H2S'][-1], 'H2O': N['H2O'][-1], 'O2': N['O2'][-1], 'r_avg': (r.mean()*24)}, index=[ind]))
         break
+
 digester_out['efficiency'] = (1-digester_out['H2S'] / N_V[0:len(digester_out),2])*100
-# plt.figure()
-# plt.subplot(2,1,1)
-# plt.plot(digester_out['t'], digester_out['CH4'], label='CH4')
-# plt.plot(digester_out['t'], digester_out['CO2'], label='CO2')
-# plt.plot(digester_out['t'], digester_out['H2O'], label='H2O')
-# plt.legend()
-# plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
-# plt.xticks(rotation=45)
-# plt.subplot(2,1,2)
-# plt.plot(digester_out['t'], digester_out['H2S'], label='H2S')
-# plt.plot(digester_out['t'], digester_out['O2'], label='O2')
-# plt.legend()
-# plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
-# plt.xticks(rotation=45)
+plt.figure()
+plt.subplot(2,1,1)
+plt.plot(digester_out['t'], digester_out['CH4'], label='CH4')
+plt.plot(digester_out['t'], digester_out['CO2'], label='CO2')
+plt.plot(digester_out['t'], digester_out['H2O'], label='H2O')
+plt.legend()
+plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
+plt.xticks(rotation=45)
+plt.subplot(2,1,2)
+plt.plot(digester_out['t'], digester_out['H2S'], label='H2S')
+plt.plot(digester_out['t'], digester_out['O2'], label='O2')
+plt.legend()
+plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
+plt.xticks(rotation=45)
 
 
 # plt.figure()
 # plt.plot(digester_out['t'], digester_out['CH4']/(digester_out['CH4']+digester_out['CO2']), label='CH4')
 # plt.plot(digester_out['t'], digester_out['CO2']/(digester_out['CH4']+digester_out['CO2']), label='CO2')
-print(Ss)

@@ -38,6 +38,9 @@ N_S1    = (f_aa+f_pr+f_xc*f_xc_pr)*N_aa
 
 Y_srb  = 0.0342*64/1000               # [g/mmol] Yield of SRB population
 
+KI_O2 = 3.293807642e-3                                      # [kg/m3] - Inhibition constant from regression I = 1/(1+w_O2/KI) 
+KI_SS = 0.014272                                            # [mmol/L] - Inhibition constant from regression I = -KI*Ss
+                                           # [kg/m3] - Inhibition constant from regression I = 1/(1+w_SS/KI)   
 ### Thermodynamic properties ###
 
 sol  = np.exp(-159.854 + 8741.68/(T+273.15) + 21.6694*np.log(T+273.15) - 0.00110261*(T+273.15))     # [-] mole fraction of dissolved CO2 in water at [T]°C (273 K-353 K)
@@ -55,6 +58,10 @@ sol_M = np.exp(-338.217 + 13281.1/(T+273.15) + 51.9144*np.log(T+273.15) - 0.0425
 H_M_atm = 1/sol_M                                                                                 # [atm] - Henry's constant methane at [T]°C - Partial Pressure Relation
 
 H_atm = [H_M_atm, H_C_atm, H_S_atm, 1]                                                            # [atm] - Henry's constant at [T]°C - Partial Pressure Relation
+
+# Oxygen Data
+sol_O2 = np.exp(-171.2542 + 8391.24/(T+273.15) + 23.24323*np.log(T+273.15)) # [-]   - Mole fraction of dissolved oxygen in water at [T]°C (273 K-353 K)
+H_O2_atm = 1/sol_O2 # [atm] - Henry's constant oxygen at [T]°C - Partial Pressure Relation
 
 # Relation for vapor pressures: Perry's Handbook, 8th edition, pages 2-55,2-60 
 # P = C1 + C2/T + C3*ln(T) + C4*(T^C5); T [K], P [Pa]
