@@ -14,19 +14,19 @@ from scipy import integrate
 R =  0.083145 #bar.M^-1.K^-1
 T_base =  298.15 #K
 p_atm =  1.013 #bar
-T_op =  308.15 #k ##T_ad #=35 C
+T_op =  42.5+273.15 #k ##T_ad #=35 C
 
-name = 'bsm2'
+name = 'thoni'
 influent_state = pd.read_csv(name + "_digester_influent_dyn"+ ".csv")
 initial_state = pd.read_csv(name + "_digester_initial_SS"+  ".csv")
 
 ##parameter definition from the Rosen et al (2006) BSM2 report bmadm1_report
 # Stoichiometric parameter
-f_sI_xc =  0.1
-f_xI_xc =  0.2
-f_ch_xc =  0.2
-f_pr_xc =  0.2
-f_li_xc =  0.3
+f_sI_xc =  0.10 # 0.1
+f_xI_xc =  0.30 # 0.2
+f_ch_xc =  0.50 # 0.2
+f_pr_xc =  0.05 # 0.2
+f_li_xc =  0.05 # 0.3
 N_xc =  0.0376 / 14
 N_I =  0.06 / 14 #kmole N.kg^-1COD
 N_aa =  0.007 #kmole N.kg^-1COD
@@ -67,9 +67,9 @@ Y_h2 =  0.06
 
 # Biochemical parameter values from the Rosen et al (2006) BSM2 report
 k_dis =  0.5 #d^-1
-k_hyd_ch =  10 #d^-1
-k_hyd_pr =  10 #d^-1
-k_hyd_li =  10 #d^-1
+k_hyd_ch = 1.25 # 10 #d^-1
+k_hyd_pr = 0.5  # 10 #d^-1
+k_hyd_li = 0.4  # 10 #d^-1
 K_S_IN =  10 ** -4 #M
 k_m_su =  30 #d^-1
 K_S_su =  0.5 #kgCOD.m^-3
@@ -136,8 +136,8 @@ K_H_ch4 =  0.0014 * np.exp((-14240 / (100 * R)) * (1 / T_base - 1 / T_ad)) #Mliq
 K_H_h2 =  7.8 * 10 ** -4 * np.exp(-4180 / (100 * R) * (1 / T_base - 1 / T_ad)) #Mliq.bar^-1 #7.38*10^-4
 
 # Physical parameter values used in BSM2 from the Rosen et al (2006) BSM2 report
-V_liq =  3400 #m^3
-V_gas =  300 #m^3
+V_liq =  4050 #3400 #m^3
+V_gas =  400 #300 #m^3
 V_ad = V_liq + V_gas #m^-3
 
 # reading influent and initial condition data from csv files
@@ -650,7 +650,7 @@ gasflow = pd.DataFrame(initflow)
 total_ch4 = 0
 
 # Initiate cache data frame for storing feedflow values
-initq = {'q_ad' : [680]}
+initq = {'q_ad' : [290]}
 feedflow = pd.DataFrame(initq)
 print('CHECK 1')
 
@@ -717,8 +717,8 @@ simulate_results['pH'] = phlogarray
 simulate_results['pH'] = phlogarray
 print('CHECK 3')
 
-simulate_results.to_csv(name + "_out_variables_dyn.csv", index = False)
-gasflow.to_csv(name+ "_gas_flows_dyn.csv", index = False) #m^3.d^-1
+simulate_results.to_csv(name + "_out_variables_dyn2.csv", index = False)
+gasflow.to_csv(name+ "_gas_flows_dyn2.csv", index = False) #m^3.d^-1
 
 ## ring test begin
 # to compare the resutls with the dynamic simulation data from the BSM2 Matlab implementation

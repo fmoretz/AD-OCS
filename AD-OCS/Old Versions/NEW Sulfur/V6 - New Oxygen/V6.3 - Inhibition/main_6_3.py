@@ -1,5 +1,7 @@
-''' Current version of AD_OCS model. Define the input according to the defined unit of measure from the spreadsheet.
-    Define the timespan in hours.'''
+''' AS_OCS model. Define the input according to the defined unit of measure from the spreadsheet.
+    Define the timespan in hours.
+    Adds the inhibition of the oxidation of sulfur to the model.
+    Different evaluation of the Ss_MAX to avoid step change'''
 
 import math
 from pprint import pprint as pp
@@ -20,7 +22,7 @@ from mix_real_gas import f_VL_realgas
 # System definition
 d_start = 0         # [h] - Start time
 d_end   = 60        # [h] - End time
-hours   = .25     # [h] - Discretization time
+hours   = .1    # [h] - Discretization time
 n_times = int((d_end-d_start)/hours)+1 # Number of time steps
 
 print('***Intervals of {hours} hours. \n {n_times} time steps***'.format(hours=hours, n_times=n_times))
@@ -104,12 +106,12 @@ index = 0
 for j in range(len(t_span)):
     # Iterate over each time step
         
-    Ss_max[j] = frac_sulfur*y_influent[j,4]*1000/64*S2[j]/y_influent[0,4]
+    Ss_max[j] = frac_sulfur*1000/64*S2[j]                   #*y_influent[j,4]/y_influent[0,4]
     Xs_max[j] = Y_srb/(1-Y_srb)*Ss_max[j]     
     
     # Gompertz function for microbial population and dissolved sulfur
     mu_srb[j] = (- X2[0] + X2[j])/max(1e-14,t_span[j]-t_span[0])      # [g/L/d]    - Gompertz parameter for SRB growth
-    Xs[j]  = gompertz(t_span[j]-t_change_loc, Xs_max[j], mu_srb[j], lam)           # [g/L]      - Sulfate Reducing Bacteria - Gompertz
+    Xs[j]  = gompertz(t_span[j], Xs_max[j], mu_srb[j], lam)           # [g/L]      - Sulfate Reducing Bacteria - Gompertz
     Ss[j]  = Xs[j]*(1-Y_srb)/(Y_srb)                                  # [g/L]      - Sulfur dissolved concentration
         
     for snapshot in range(len(t_span)):        
@@ -121,9 +123,9 @@ for j in range(len(t_span)):
     y_S[j]   = (KH_S*Ss[j])/P_dig                             # [-]        - Sulfur Mole fraction in gas phase (G/L equilibrium)
 
 
-I_Ss = 1-KI_SS*Ss                                         # [-]   - Sulfate Ion concentration  
+I_Ss = 1-KI_SS*Ss                                             # [-]   - Sulfate Ion concentration  
 q_M  = q_M_u*I_Ss
-q_tot = q_C + q_M                                                # [mmol/L/d] - Outlet global molar flow  
+q_tot = q_C + q_M                                             # [mmol/L/d] - Outlet global molar flow  
 q_S = y_S*q_tot                                               # [mmol/L/d] - Sulfur Outlet Specific Molar Flow
 ### Assess the liquid volume dynamics
 h = np.zeros(len(t_span))
@@ -155,9 +157,6 @@ for i in range(len(t_span)):
         print('!!! Level is too low !!!')
         input('Press Enter to continue')
 
-plt.figure(figsize=(10,5))
-plt.plot(t_span, V_liq)
-plt.xlabel('Time [h]')
 
 #### Evaluation of the G/L equilibrium effects on the system ####
 
@@ -177,10 +176,6 @@ for i in range(len(t_span)):
 
     F_i[i] = np.array([F_M[i], F_C[i], F_S[i], F_W[i]])         # [mol/h] - Outlet Molar Flow - In of the flash
 
-plt.figure()
-plt.plot(t_span, F_M, label='Methane')
-plt.plot(t_span, F_C, label='Carbon Dioxide')
-plt.show()
 z_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - In of the flash
 x_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - Liquid phase of the flash
 y_i = np.zeros([len(t_span),n_species])                         # [-] - Outlet Molar Fraction - Vapor phase of the flash
@@ -211,7 +206,7 @@ for t in range(len(t_span)):
     K[t]= VLsolution[1]         
     
     N_V_tot[t] = F_in*alpha_flash[t]                                # [mol/h] - Vapor Molar Flow
-    N_L_tot[t] = F_in - N_V_tot[t]                                   # [mol/h] - Liquid Molar Flow
+    N_L_tot[t] = F_in - N_V_tot[t]                                  # [mol/h] - Liquid Molar Flow
     for i in range(n_species):
         x_i[t,i] = z_i[t,i]/(1+alpha_flash[t]*(K[t,i]-1))          # [-]     - Outlet Molar Fraction - Liquid phase of the flash
         y_i[t,i] = K[t,i]*x_i[t,i]                                 # [-]     - Outlet Molar Fraction - Vapor phase of the flash
@@ -244,8 +239,8 @@ digester_out = pd.DataFrame()
 for ind in range(len(t_span)):
     t_cstr = np.arange(0,tau_headspace[ind],hours)
     while ind < (len(t_span)-len(t_cstr)):              
-        N, r, INIB, I_O2 = headspace_dynamics_discr(N_V[ind:(ind+len(t_cstr)),:], N_in_O2[ind:(ind+len(t_cstr))], P_dig, T, V_gas[ind:(ind+len(t_cstr))], t_cstr)
-        headspace_dict[ind]= {'t_in': t_span[ind],'t_cstr': t_cstr, 'H2S': N['H2S'], 'H2O': N['H2O'], 'O2': N['O2'], 'SX': N['SX'], 'r_sob': r, 'Inhibition': INIB, 'IO2': I_O2} # stores the results of the CSTR dynamics at each iteration, r [mg/L/h], N [mol/h]
+        N, r = headspace_dynamics_discr(N_V[ind:(ind+len(t_cstr)),:], N_in_O2[ind:(ind+len(t_cstr))], P_dig, T, V_gas[ind:(ind+len(t_cstr))], t_cstr)
+        headspace_dict[ind]= {'t_in': t_span[ind],'t_cstr': t_cstr, 'H2S': N['H2S'], 'H2O': N['H2O'], 'O2': N['O2'], 'SX': N['SX'], 'r_sob': r} # stores the results of the CSTR dynamics at each iteration, r [mg/L/h], N [mol/h]
         digester_out = digester_out.append(pd.DataFrame({'t_in': t_span[ind],'t': (t_span[ind]+tau_headspace[ind]),'CH4': N_V[ind,0], 'CO2': N_V[ind,1], 'H2S': N['H2S'][-1], 'H2O': N['H2O'][-1], 'O2': N['O2'][-1], 'r_avg': (r.mean()*24)}, index=[ind]))
         break
 
@@ -260,20 +255,21 @@ w_fr_O2 =  x_L_O2* P_dig/Rgas_L_atm_K/(T+273.15)*0.032         # [kg/m3] - Mass 
 I_O2 = 1/(1+w_fr_O2/KI_O2) # [-] - Inhibition factor of oxygen
 Ch4_inh = digester_out['CH4']*I_O2
 
-# plt.figure()
-# plt.subplot(2,1,1)
-# plt.plot(digester_out['t'], digester_out['CH4'], label='CH4')
-# plt.plot(digester_out['t'], digester_out['CO2'], label='CO2')
-# plt.plot(digester_out['t'], digester_out['H2O'], label='H2O')
-# plt.legend()
-# plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
-# plt.xticks(rotation=45)
-# plt.subplot(2,1,2)
-# plt.plot(digester_out['t'], digester_out['H2S'], label='H2S')
-# plt.plot(digester_out['t'], digester_out['O2'], label='O2')
-# plt.legend()
-# plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
-# plt.xticks(rotation=45)
+plt.figure()
+plt.subplot(2,1,1)
+plt.plot(digester_out['t'], digester_out['CH4'], label='CH4')
+plt.plot(digester_out['t'], digester_out['CO2'], label='CO2')
+plt.plot(digester_out['t'], digester_out['H2O'], label='H2O')
+plt.legend()
+plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
+plt.xticks(rotation=45)
+plt.subplot(2,1,2)
+plt.plot(digester_out['t'], digester_out['H2S'], label='H2S')
+plt.plot(digester_out['t'], digester_out['O2'], label='O2')
+plt.legend()
+plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
+plt.xticks(rotation=45)
+plt.show()
 
 
 # plt.figure()

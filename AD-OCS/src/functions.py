@@ -12,8 +12,13 @@ def level_t(t, D, Qin, SR, h0, t_change):
     Qin [m3/d] - Influent flow
     SR [m2] - Surface of the reactor
     '''
-    t_loc = t-t_change # [h] - Time from the start of the change
+    t_loc = t-t_change # [h] - Time from the start of the change           
     return h0*np.exp(-D/24*t_loc) + (1-np.exp(-D/24*t_loc))*Qin/(D*SR)
+
+def logistic_deviations(t, NA, alpha, t0, Y0):
+    '''Logistic function to smooth the deviations'''
+    Q = -1 + NA/Y0
+    return NA/(1+Q*np.exp(-alpha*(t-t0)))
 
 def gompertz(x,a,b,c):                                                                      
     '''Gompertz function to model the SRB population'''
@@ -30,7 +35,7 @@ def f_deviations(t_span, t_change_vett, y_in_0):
     Needs: 
     - t_span: time span of the simulation
     - t_change_vett: vector of the times at which the influent changes, defined by excel spreadsheet
-    - y_in_0: vector of the initial values of the influent [S1in, S2in, Cin, Zin, XTin, Qin] and their measure units
+    - y_in_0: vector of the initial values of the influent [S1in, S2in, Cin, Zin, XTin, Qin] and their respective measure units
     - Matrix T3: matrix of the deviations to be applied to the influent, derived from the Excel spreadsheet
     '''
     y_influent = np.zeros((len(t_span), len(y_in_0))) # Defines the y_in values which will be used in the main
@@ -347,3 +352,132 @@ def fug_mix_PR(Zed, w, Tc, Pc, P, T, amix, bmix):
   else:
     pass
   return phi_mix
+
+
+def headspace_dynamics_discr(Nin, Nin_O2, *args):
+  # Nin = [CH4, CO2, H2S, H2O]
+    P, T, Vgas, t, k, RC, alfa, beta = args
+    dt = (t[-1] - t[0])/len(t)
+    
+    R = 0.0821 # L * atm/mol/K
+    
+
+    n_in = {
+        'H2S': Nin[:,2],
+        'O2':  Nin_O2,
+        'SX':  0.000,
+        'H2O': Nin[:,3]
+    } # mol/hours
+
+    PM = {
+        'H2S': 34.1,
+        'O2':  36.0,
+        'SX':  32.1,
+        'H2O': 18.0
+    }    
+    n_out = {
+        'H2S': np.zeros(len(t)),
+        'O2':  np.zeros(len(t)),
+        'SX':  np.zeros(len(t)),
+        'H2O': np.zeros(len(t))
+    } # mol/hours
+
+    c_out = {
+        'H2S': np.zeros(len(t)),
+        'O2':  np.zeros(len(t))
+    } # mol/hours
+
+    m_out = {
+        'H2S': np.zeros(len(t)),
+        'O2':  np.zeros(len(t))
+    } # mol/hours
+
+    x_out = {
+        'H2S': np.zeros(len(t)),
+        'O2':  np.zeros(len(t))
+    } # mol/hours
+
+    # n_out_inhib = np.zeros(len(t))
+    # I_O2 = np.zeros(len(t))
+    
+
+    n_out['H2S'][0] = n_in['H2S'][0]
+    n_out['O2'][0]  = n_in['O2'][0]
+    n_out['H2O'][0] = n_in['H2O'][0]
+
+    x_out['H2S'][0] = n_in['H2S'][0] / (n_out['H2O'][0] + n_out['H2S'][0] + n_out['O2'][0] + Nin[0,0] + Nin[0,1])
+    x_out['O2'][0]  = n_in['O2'][0]  / (n_out['H2O'][0] + n_out['H2S'][0] + n_out['O2'][0] + Nin[0,0] + Nin[0,1])
+
+    c_out['H2S'][0] = x_out['H2S'][0] * P/R/(T+273.15) # mol/L
+    c_out['O2'][0]  = x_out['O2'][0]  * P/R/(T+273.15) # mol/L
+
+    m_out['H2S'][0] = c_out['H2S'][0] * PM['H2S'] * 1000 # g/m3
+    m_out['O2'][0]  = c_out['O2'][0]  * PM['O2'] * 1000 # g/m3
+
+    # I_O2[0] = 1/(1+m_out['O2'][0]/KI_O2/1000)
+    # n_out_inhib[0] = Nin[0,0]*I_O2[0]
+    r_SOB = np.zeros(len(t))
+    r_SOB[0] = (k * m_out['H2S'][0]**alfa * m_out['O2'][0]**beta) # gS/m3/h     
+
+    for i in range(1, len(t)):
+                             #                                                           CH4       CO2
+        x_out['H2S'][i-1] = n_out['H2S'][i-1] / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + Nin[i,0] + Nin[i,1])
+        x_out['O2'][i-1]  = n_out['O2'][i-1]  / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + Nin[i,0] + Nin[i,1])
+        
+        c_out['H2S'][i-1] = x_out['H2S'][i-1] * P/R/(T+273.15) # mol/L
+        c_out['O2'][i-1]  = x_out['O2'][i-1]  * P/R/(T+273.15) # mol/L
+        
+        m_out['H2S'][i-1] = c_out['H2S'][i-1] * PM['H2S'] * 1000 # g/m3
+        m_out['O2'][i-1]  = c_out['O2'][i-1]  * PM['O2'] * 1000 # g/m3
+
+        r_SOB[i] = (k * m_out['H2S'][i-1]**alfa * m_out['O2'][i-1]**beta) # gS/m3/h
+
+        # I_O2[i] = 1/(1+m_out['O2'][i-1]/KI_O2/1000) 
+        # n_out_inhib[i] = Nin[i,0]*I_O2[i]
+
+        n_out['H2S'][i] = (n_in['H2S'][i]*dt + (n_out['H2S'][i-1])  - r_SOB[i]*dt* Vgas[i] / PM['H2S'])/(1+dt)
+        n_out['O2'][i]  = (n_in['O2'][i]*dt  + (n_out['O2'][i-1])   - r_SOB[i]*dt* Vgas[i] / (2 * PM['O2']))/(1+dt)
+        n_out['SX'][i]  = (n_in['SX']*dt  + (n_out['SX'][i-1])   + r_SOB[i]*dt* Vgas[i] / PM['SX'])/(1+dt)
+        
+        n_out['H2O'][i] = n_in['H2O'][i] + (n_out['H2S'][i-1] - n_in['H2S'][i]) # n_in['H2O'] + nu['H2O'] * (k * m_out['H2S'][i]**alfa * m_out['O2'][i]**beta)*( dt/(1+dt) ) * Vgas /
+    
+    return n_out, r_SOB 
+
+
+
+def Headspace_reactions(y, RC, k_SOB, alfa, beta, V_gas, N_V):
+        
+        n_S =  y[0]                             # [mol/h] - Sulfur flowrate
+        n_O2 = y[1]                              # [mol/h] - Oxygen flowrate  
+      
+        n_out = N_V[0]+N_V[1]+N_V[i,3] + n_S + n_O2 # [mol/h] - Total Outflow
+        
+        y_S_in = n_S_in/(sum(N_V[:])+n_O2_in)         # [-] - Sulfur molar fraction in the inflow
+        y_O_in = n_O2_in/(sum(N_V[:])+n_O2_in)        # [-] - Sulfur molar fraction in the inflow
+
+        y_S_loc = n_S/n_out                     # [-] - Sulfur fraction in the headspace
+        y_O2_loc = n_O2/n_out                   # [-] - Oxygen fraction in the headspace       
+        
+        C_S  = y_S_loc*P_dig/(Rgas_L_atm_K*T)   # [mol/L] - Sulfur concentration in gas phase atm/(L*atm/mol/K*L) = mol/L
+        C_O2 = y_O2_loc*P_dig/(Rgas_L_atm_K*T)  # [mol/L] - Oxygen concentration in gas phase
+
+        S_S = C_S*MW_S*1e+3                     # [g/m3] - Sulfur concentration in gas phase
+        S_O2 = C_O2*MW_O*1e+3                   # [g/m3] - Oxygen concentration in gas phase
+
+        r_SOB = k_SOB*(S_S**alfa)*(S_O2**beta)                     # [gS/m3/h] - Reaction rate SOB
+       
+        
+        
+        BM_S  = n_S_in     - n_S  - V_gas*r_SOB/MW_S            # [mol/h]   - Sulfur Balance
+        BM_O2 = n_O2_in    - n_O2 - V_gas*r_SOB/RC/MW_O         # [mol/h]   - Oxygen Balance
+        
+        if BM_S and BM_O2 < 1e-10:
+            r_vett[i] = r_SOB/60                                    # [mg/L/min] - Reaction rate
+            S_vett[0] = S_S                                       # [mg/L] - Sulfur concentration
+            S_vett[1] = y_S_in*P_dig/(Rgas_L_atm_K*T)*MW_S*1e+3   # [mg/L] - Influent conc of Sulfur
+            S_vett[2] = S_O2                                      # [mg/L] - O2 concentration
+            S_vett[3] = y_O_in*P_dig/(Rgas_L_atm_K*T)*MW_O*1e+3   # [mg/L] - Influent conc of Sulfur
+            print('r = ', r_SOB/60,'[mg/L/min]')
+            print('S_S,in = ', y_S_in*P_dig/(Rgas_L_atm_K*T)*MW_S*1e+3,'[mg/L]', 'S_O2,in', y_O_in*P_dig/(Rgas_L_atm_K*T)*MW_O*1e+3,'[mg/L]')
+            print('S_S = ', S_S,'[mg/L]', 'S_O2 = ', S_O2,'[mg/L]')
+        return [BM_S, BM_O2]

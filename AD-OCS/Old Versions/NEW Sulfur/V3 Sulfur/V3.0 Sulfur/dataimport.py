@@ -12,7 +12,7 @@ print("Data are from:",simname)
 filename: Path = simname + '.xlsx'
 folder: Path = Path(Path.cwd())
 folder: Path = folder.joinpath('data')
-reading_path =  (folder/filename)
+reading_path =  r'C:\Users\fede1\OneDrive - Politecnico di Milano\Documenti\GitHub\AD-OCS\Working_data\amoco_HN.xlsx'
 
 colnames = ["HRT", "XT", "S1", "S2", "X1", "X2", "C", "Z", "CO2", "B", "pH", "P_C", "q_C", "q_CH4"]
 

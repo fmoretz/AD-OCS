@@ -17,19 +17,19 @@ from scipy import integrate
 R =  0.083145 #bar.M^-1.K^-1
 T_base =  298.15 #K
 p_atm =  1.013 #bar
-T_op =  308.15 #k ##T_ad #=35 C
-HRT_vett = [5, 8, 10, 12, 15, 17, 20, 22, 25, 30, 50, 70]  # d
-name = 'bsm2'
+T_op =  308.15 +7.5#k ##T_ad #=35 C
+HRT_vett = [10, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 26]  # d
+name = 'thoni_2'
 influent_state = pd.read_csv(name + "_digester_influent"+ ".csv")
 initial_state = pd.read_csv(name + "_digester_initial"+  ".csv")
 
 ##parameter definition from the Rosen et al (2006) BSM2 report bmadm1_report
 # Stoichiometric parameter
-f_sI_xc =  0.1
-f_xI_xc =  0.2
-f_ch_xc =  0.2
-f_pr_xc =  0.2
-f_li_xc =  0.3
+f_sI_xc =  0.10 # 0.1
+f_xI_xc =  0.30 # 0.2
+f_ch_xc =  0.50 # 0.2
+f_pr_xc =  0.05 # 0.2
+f_li_xc =  0.05 # 0.3
 N_xc =  0.0376 / 14
 N_I =  0.06 / 14 #kmole N.kg^-1COD
 N_aa =  0.007 #kmole N.kg^-1COD
@@ -70,9 +70,9 @@ Y_h2 =  0.06
 
 # Biochemical parameter values from the Rosen et al (2006) BSM2 report
 k_dis =  0.5 #d^-1
-k_hyd_ch =  10 #d^-1
-k_hyd_pr =  10 #d^-1
-k_hyd_li =  10 #d^-1
+k_hyd_ch = 1.25 # 10 #d^-1
+k_hyd_pr = 0.5  # 10 #d^-1
+k_hyd_li = 0.4  # 10 #d^-1
 K_S_IN =  10 ** -4 #M
 k_m_su =  30 #d^-1
 K_S_su =  0.5 #kgCOD.m^-3
@@ -140,8 +140,8 @@ for i in range(len(HRT_vett)):
     K_H_h2 =  7.8 * 10 ** -4 * np.exp(-4180 / (100 * R) * (1 / T_base - 1 / T_ad)) #Mliq.bar^-1 #7.38*10^-4
 
     # Physical parameter values used in BSM2 from the Rosen et al (2006) BSM2 report
-    V_liq =  3400 #m^3
-    V_gas =  300 #m^3
+    V_liq =  4050 #m^3
+    V_gas =  350 #m^3
     V_ad = V_liq + V_gas #m^-3
 
     # reading influent and initial condition data from csv files
@@ -716,8 +716,8 @@ for i in range(len(HRT_vett)):
     simulate_results['pH'] = phlogarray
     print('CHECK 2')
     print(q_ad)
-    SS_values = simulate_results.iloc[-2000:-1].mean() # steady state values =========================== !!!!!! ACCOUNT FOR CALCULATION ISSUES
-    SS_gas = gasflow.iloc[-2000:-1].mean()
+    SS_values = simulate_results.iloc[-2900:-1].mean() # steady state values =========================== !!!!!! ACCOUNT FOR CALCULATION ISSUES
+    SS_gas = gasflow.iloc[-2900:-1].mean()
     if i == 0:      
       df_SS = pd.DataFrame([SS_values], columns = columns)
       df_SS_gas = pd.DataFrame([SS_gas], columns = gascolumns)
