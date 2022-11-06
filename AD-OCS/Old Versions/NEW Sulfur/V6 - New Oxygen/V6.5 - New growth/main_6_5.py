@@ -19,8 +19,8 @@ from mix_real_gas import f_VL_realgas
 
 # System definition
 d_start = 0         # [h] - Start time
-d_end   = 60       # [h] - End time
-hours   = 1/60      # [h] - Discretization time
+d_end   = 60     # [h] - End time
+hours   = .05      # [h] - Discretization time
 
 n_times = int((d_end-d_start)/hours)+1  # Number of time steps
 
@@ -29,7 +29,7 @@ print('***Intervals of {hours} hours. \n {n_times} time steps***'.format(hours=h
 t_span = np.linspace(d_start,d_end,n_times) # time span
 t_span_d = t_span/24 # time span in days
 
-y_influent_changes = f_deviations(t_span_d, T3.index.values, y_in_0) # Get the deviated influent values at each timestamp
+y_influent_changes = f_deviations(t_span_d, T3.index.values, y_in_0) # Get the deviated influent values [S1_in, S2_in, C_in, Z_in, XT_in, Q_in_0]: deviations in the Z results from deviations in Nin
 y_influent = y_influent_changes[:,0:5] # Remove the Q_in values
 
 Q_in = y_influent_changes[:,5] # Remove the y_in values
@@ -139,7 +139,13 @@ for i in range(len(Q_in)):
         Q_in_real[i] = logistic_deviations(t, T3.Qin.iloc[loc_index]*Q_in[0], 1, T3.index.values[loc_index]*24, Q_in_0_loc)
         if t >= T3.index.values[loc_index+1]*24:
             loc_index += 1
-
+Q_df = pd.DataFrame(index=t_span)
+Q_df = pd.DataFrame()
+Q_df["Qin"] = Q_in
+Q_df["Qin_real"] = Q_in_real
+Q_df["Qin_smooth"] = Q_df["Qin_real"].rolling(window=10).mean()
+Q_df["Qin_smooth"].fillna(method='bfill', inplace=True)
+Q_in_real = Q_df["Qin_smooth"].values
 
 h = np.zeros(len(t_span))
 h0 = h_SS
@@ -165,13 +171,20 @@ for i in range(len(t_span)):
         if t >= T3.index.values[index+1]*24:
             index += 1             
    
-    V_liq[i] = np.pi*Dr**2*h[i]/4                             # [m3] - Liquid Volum
+    
     if h[i] > hmax:
         print('!!! Level is too high !!!')
         input('Press Enter to continue')
     elif h[i] < hmin:
         print('!!! Level is too low !!!')
         input('Press Enter to continue')
+h_df = pd.DataFrame(index=t_span_d)
+h_df = pd.DataFrame()
+h_df["h"] = h
+h_df["h_smooth"] = h_df["h"].rolling(window=5).mean()
+h_df["h_smooth"].fillna(method='bfill', inplace=True)
+h = h_df["h_smooth"].values
+V_liq = np.pi*Dr**2*h/4                             # [m3] - Liquid Volume
 
 #### Evaluation of the G/L equilibrium effects on the system ####
 
@@ -237,9 +250,9 @@ for t in range(len(t_span)):
 
 
 RC = 1.8                                                        # [gS/gO2]     - Stoichiometry of the reaction
-alfa = 1                                                        # [-] - Power for sulfur concentration
-beta = 0.1                                                      # [-] - Power for oxygen concentration
-k_SOB = 0.6                                                     # [1/m3/h*(gS*gO)^proper exp] - Reaction rate constant
+alpha = 1                                                        # [-] - Power for sulfur concentration
+beta = 0.3                                                   # [-] - Power for oxygen concentration
+k_SOB = 0.9                                                     # [1/m3/h*(gS*gO)^proper exp] - Reaction rate constant
 r_vett = np.zeros(len(t_span))                                  # [mg/L/min] - Reaction rate
 S_vett = np.zeros((len(t_span),4))                              # [mg/L] - Sulfur concentration
 
@@ -247,16 +260,16 @@ V_gas = ((V_reactor - V_liq) + V_headspace)
 
 tau_headspace = V_gas/Q_V.sum(1)                            # [h] - Time to fill the headspace
 
-N_in_O2 = 0.5*N_V[:,2] # [mol/h] - Oxygen Flow with respect to sulfur flow
+N_in_O2 = 0.1*N_V[:,2] # [mol/h] - Oxygen Flow with respect to sulfur flow
 headspace_dict = {}
 digester_out = pd.DataFrame()
 
 for ind in range(len(t_span)):
     t_cstr = np.arange(0,tau_headspace[ind],hours)
     while ind < (len(t_span)-len(t_cstr)):                
-        N, r = headspace_dynamics_discr(N_V[ind:(ind+len(t_cstr)),:], N_in_O2[ind:(ind+len(t_cstr))], P_dig, T, V_gas, t_cstr, k_SOB, RC, alfa, beta)
-        headspace_dict[ind]= {'t_in': t_span[ind],'t_cstr': t_cstr, 'H2S': N['H2S'], 'H2O': N['H2O'], 'O2': N['O2'], 'SX': N['SX'], 'r_sob': r} # stores the results of the CSTR dynamics at each iteration, r [mg/L/h], N [mol/h]
-        digester_out = digester_out.append(pd.DataFrame({'t_in': t_span[ind],'t': (t_span[ind]+tau_headspace[ind]),'F_CH4': N_V[ind,0], 'F_CO2': N_V[ind,1], 'F_H2S': N['H2S'][-1], 'F_H2O': N['H2O'][-1], 'F_O2': N['O2'][-1], 'r_avg': (r.mean()*24)}, index=[ind]))
+        N, r = headspace_dynamics_discr(N_V[ind:(ind+len(t_cstr)),:], N_in_O2[ind:(ind+len(t_cstr))], P_dig, T, V_gas[ind:(ind+len(t_cstr))], t_cstr, k_SOB, RC, alpha, beta,tau_headspace[ind:(ind+len(t_cstr))])
+        headspace_dict[ind]= {'t_in': t_span[ind],'t_cstr': t_cstr, 'H2S': N['H2S'], 'H2O': N['H2O'], 'O2': N['O2'], 'SX': N['SX'], 'r_sob': r} # stores the results of the CSTR dynamics at each iteration, r [mg/L/h], N [mol]
+        digester_out = digester_out.append(pd.DataFrame({'t_in': t_span[ind],'t': (t_span[ind]+tau_headspace[ind]),'F_CH4': N_V[ind,0], 'F_CO2': N_V[ind,1], 'F_H2S': N['H2S'][-1]/tau_headspace[ind], 'F_H2O': N['H2O'][-1]/tau_headspace[ind], 'F_O2': N['O2'][-1]/tau_headspace[ind], 'r_avg': (r.mean()*24)}, index=[ind]))
         break
 
 digester_out['efficiency'] = (1-digester_out['F_H2S'] / N_V[0:len(digester_out),2])*100
@@ -295,8 +308,11 @@ digester_out['x_v_H2S'] = digester_out['Q_H2S']/digester_out['Q_total']         
 digester_out['x_v_H2O'] = digester_out['Q_H2O']/digester_out['Q_total']          # [-] - Vol. Fraction of H2O in the total flowrate
 digester_out['x_v_O2']  = digester_out['Q_O2']/digester_out['Q_total']           # [-] - Vol. Fraction of O2 in the total flowrate
 
-# plt.figure()
-# plt.subplot(2,1,1)
+
+
+plt.figure()
+plt.subplot(2,1,1)
+plt.plot(digester_out['t'], digester_out['x_CH4'], label='CH4')
 # plt.plot(digester_out['t'], digester_out['x_v_CH4'], label='CH4')
 # plt.plot(digester_out['t'], Ch4_inh, ':', label='CH4_inh')
 # plt.plot(digester_out['t'], digester_out['x_v_CO2'], label='CO2')
@@ -305,26 +321,25 @@ digester_out['x_v_O2']  = digester_out['Q_O2']/digester_out['Q_total']          
 # plt.legend()
 # plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
 # plt.xticks(rotation=45)
-# plt.subplot(2,1,2)
-# plt.plot(digester_out['t'], digester_out['x_v_H2S']*1e+6, label='H2S')
+plt.subplot(2,1,2)
+plt.plot(digester_out['t'], digester_out['x_v_H2S']*1e+6, label='H2S')
 # plt.plot(digester_out['t'], digester_out['x_v_O2']*1e+6, label='O2')
 # plt.legend()
 # plt.xlim([digester_out['t'].min(), digester_out['t'].max()])
 # plt.xticks(rotation=45)
 # plt.ylabel('Volumetric fraction [ppm]')
 
-# # plt.figure()
-# # samples = [0, 250, 300, 350, 400, 450]
-# # for i in samples:
-# #     plt.plot(headspace_dict[i]['t_cstr'], headspace_dict[i]['H2S'], label = 't = %.4s h' % t_span[i])
-# # plt.legend()
-
+plt.figure()
+samples = [0, 250, 300, 350, 400, 450,500, 700]
+for i in samples:
+    plt.plot(headspace_dict[i]['t_cstr'], headspace_dict[i]['H2S'], label = 't = %.4s h' % t_span[i])
+plt.legend()
 
 # plt.figure()
 # plt.plot(t_span,growth_rate)
 # plt.figure()
 # plt.plot(t_span,S2-S2_pre)
-# plt.show()
+plt.show()
 
 
 # # plt.figure()

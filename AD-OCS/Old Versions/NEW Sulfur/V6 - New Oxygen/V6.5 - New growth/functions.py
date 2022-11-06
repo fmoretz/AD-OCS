@@ -356,7 +356,7 @@ def fug_mix_PR(Zed, w, Tc, Pc, P, T, amix, bmix):
 
 def headspace_dynamics_discr(Nin, Nin_O2, *args):
   # Nin = [CH4, CO2, H2S, H2O]
-    P, T, Vgas, t, k, RC, alfa, beta = args
+    P, T, Vgas, t, k, RC, alfa, beta, tau_head = args
     dt = (t[-1] - t[0])/len(t)
     
     R = 0.0821 # L * atm/mol/K
@@ -435,9 +435,9 @@ def headspace_dynamics_discr(Nin, Nin_O2, *args):
         # I_O2[i] = 1/(1+m_out['O2'][i-1]/KI_O2/1000) 
         # n_out_inhib[i] = Nin[i,0]*I_O2[i]
 
-        n_out['H2S'][i] = (n_in['H2S'][i]*dt + (n_out['H2S'][i-1])  - r_SOB[i]*dt* Vgas[i] / PM['H2S'])/(1+dt)
-        n_out['O2'][i]  = (n_in['O2'][i]*dt  + (n_out['O2'][i-1])   - r_SOB[i]*dt* Vgas[i] / (2 * PM['O2']))/(1+dt)
-        n_out['SX'][i]  = (n_in['SX']*dt  + (n_out['SX'][i-1])   + r_SOB[i]*dt* Vgas[i] / PM['SX'])/(1+dt)
+        n_out['H2S'][i] = max(1e-16,(n_in['H2S'][i]*dt + (n_out['H2S'][i-1])  - r_SOB[i]*dt* Vgas[i] / PM['H2S'])/(1+dt/tau_head[i]))
+        n_out['O2'][i]  = max(1e-16,(n_in['O2'][i]*dt  + (n_out['O2'][i-1])   - r_SOB[i]*dt* Vgas[i] / (2 * PM['O2']))/(1+dt/tau_head[i]))
+        n_out['SX'][i]  = (n_in['SX']*dt  + (n_out['SX'][i-1])   + r_SOB[i]*dt* Vgas[i] / PM['SX'])/(1+dt/tau_head[i])
         
         n_out['H2O'][i] = n_in['H2O'][i] + (n_out['H2S'][i-1] - n_in['H2S'][i]) # n_in['H2O'] + nu['H2O'] * (k * m_out['H2S'][i]**alfa * m_out['O2'][i]**beta)*( dt/(1+dt) ) * Vgas /
     

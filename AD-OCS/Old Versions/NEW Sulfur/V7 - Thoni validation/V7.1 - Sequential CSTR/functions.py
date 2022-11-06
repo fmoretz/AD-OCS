@@ -43,7 +43,7 @@ def f_deviations(t_span, t_change_vett, y_in_0):
 
     index = 0
     t_change_loc = t_change_vett[index]                # Get the time when the first deviation is applied
-    scale_loc    = np.ones(len(y_in_0))    # Get the scale values for the first time change
+    scale_loc    = np.ones(len(y_in_0))    # Get the scale values for the first time change [S1,S2,C,N,XT,Q,gammaS,xW]
    
     for i in range(len(t_span)):
         t = t_span[i]
@@ -355,7 +355,7 @@ def fug_mix_PR(Zed, w, Tc, Pc, P, T, amix, bmix):
   return phi_mix
 
 
-def headspace_dynamics_discr(Nin, Nin_O2, *args):
+def headspace_dynamics_discr(Nin, Nin_O2, Nin_N2, *args):
   # Nin = [CH4, CO2, H2S, H2O]
     P, T, Vgas, t, k, RC, alfa, beta = args
     dt = (t[-1] - t[0])/len(t)
@@ -367,14 +367,16 @@ def headspace_dynamics_discr(Nin, Nin_O2, *args):
         'H2S': Nin[:,2],
         'O2':  Nin_O2,
         'SX':  0.000,
-        'H2O': Nin[:,3]
+        'H2O': Nin[:,3],
+        'N2':  Nin_N2,
     } # mol/hours
 
     PM = {
         'H2S': 34.1,
         'O2':  36.0,
         'SX':  32.1,
-        'H2O': 18.0
+        'H2O': 18.0,
+        'N2':  28.0,
     }    
     n_out = {
         'H2S': np.zeros(len(t)),
@@ -406,8 +408,8 @@ def headspace_dynamics_discr(Nin, Nin_O2, *args):
     n_out['O2'][0]  = n_in['O2'][0]
     n_out['H2O'][0] = n_in['H2O'][0]
 
-    x_out['H2S'][0] = n_in['H2S'][0] / (n_out['H2O'][0] + n_out['H2S'][0] + n_out['O2'][0] + Nin[0,0] + Nin[0,1])
-    x_out['O2'][0]  = n_in['O2'][0]  / (n_out['H2O'][0] + n_out['H2S'][0] + n_out['O2'][0] + Nin[0,0] + Nin[0,1])
+    x_out['H2S'][0] = n_in['H2S'][0] / (n_out['H2O'][0] + n_out['H2S'][0] + n_out['O2'][0] + Nin[0,0] + Nin[0,1] + Nin_N2[0])
+    x_out['O2'][0]  = n_in['O2'][0]  / (n_out['H2O'][0] + n_out['H2S'][0] + n_out['O2'][0] + Nin[0,0] + Nin[0,1] + Nin_N2[0])
 
     c_out['H2S'][0] = x_out['H2S'][0] * P/R/(T+273.15) # mol/L
     c_out['O2'][0]  = x_out['O2'][0]  * P/R/(T+273.15) # mol/L
@@ -422,8 +424,8 @@ def headspace_dynamics_discr(Nin, Nin_O2, *args):
 
     for i in range(1, len(t)):
                              #                                                           CH4       CO2
-        x_out['H2S'][i-1] = n_out['H2S'][i-1] / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + Nin[i,0] + Nin[i,1])
-        x_out['O2'][i-1]  = n_out['O2'][i-1]  / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + Nin[i,0] + Nin[i,1])
+        x_out['H2S'][i-1] = n_out['H2S'][i-1] / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + Nin[i,0] + Nin[i,1]+Nin_N2[i])
+        x_out['O2'][i-1]  = n_out['O2'][i-1]  / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + Nin[i,0] + Nin[i,1]+Nin_N2[i])
         
         c_out['H2S'][i-1] = x_out['H2S'][i-1] * P/R/(T+273.15) # mol/L
         c_out['O2'][i-1]  = x_out['O2'][i-1]  * P/R/(T+273.15) # mol/L
@@ -433,11 +435,8 @@ def headspace_dynamics_discr(Nin, Nin_O2, *args):
 
         r_SOB[i] = (k * m_out['H2S'][i-1]**alfa * m_out['O2'][i-1]**beta) # gS/m3/h
 
-        # I_O2[i] = 1/(1+m_out['O2'][i-1]/KI_O2/1000) 
-        # n_out_inhib[i] = Nin[i,0]*I_O2[i]
-
-        n_out['H2S'][i] = (n_in['H2S'][i]*dt + (n_out['H2S'][i-1])  - r_SOB[i]*dt* Vgas[i] / PM['H2S'])/(1+dt)
-        n_out['O2'][i]  = (n_in['O2'][i]*dt  + (n_out['O2'][i-1])   - r_SOB[i]*dt* Vgas[i] / (2 * PM['O2']))/(1+dt)
+        n_out['H2S'][i] = max(1e-16,(n_in['H2S'][i]*dt + (n_out['H2S'][i-1])  - r_SOB[i]*dt* Vgas[i] / PM['H2S'])/(1+dt))
+        n_out['O2'][i]  = max(1e-16,(n_in['O2'][i]*dt  + (n_out['O2'][i-1])   - r_SOB[i]*dt* Vgas[i] / (RC * PM['O2']))/(1+dt))
         n_out['SX'][i]  = (n_in['SX']*dt  + (n_out['SX'][i-1])   + r_SOB[i]*dt* Vgas[i] / PM['SX'])/(1+dt)
         
         n_out['H2O'][i] = n_in['H2O'][i] + (n_out['H2S'][i-1] - n_in['H2S'][i]) # n_in['H2O'] + nu['H2O'] * (k * m_out['H2S'][i]**alfa * m_out['O2'][i]**beta)*( dt/(1+dt) ) * Vgas /

@@ -22,9 +22,9 @@ initial_state = pd.read_csv(name + "_digester_initial_SS"+  ".csv")
 
 ##parameter definition from the Rosen et al (2006) BSM2 report bmadm1_report
 # Stoichiometric parameter
-f_sI_xc =  0.13 # 0.1
-f_xI_xc =  0.32 # 0.2
-f_ch_xc =  0.45 # 0.2
+f_sI_xc =  0.10 # 0.1
+f_xI_xc =  0.30 # 0.2
+f_ch_xc =  0.50 # 0.2
 f_pr_xc =  0.05 # 0.2
 f_li_xc =  0.05 # 0.3
 N_xc =  0.0376 / 14
@@ -137,7 +137,7 @@ K_H_h2 =  7.8 * 10 ** -4 * np.exp(-4180 / (100 * R) * (1 / T_base - 1 / T_ad)) #
 
 # Physical parameter values used in BSM2 from the Rosen et al (2006) BSM2 report
 V_liq =  4050 #3400 #m^3
-V_gas =  350 #300 #m^3
+V_gas =  400 #300 #m^3
 V_ad = V_liq + V_gas #m^-3
 
 # reading influent and initial condition data from csv files

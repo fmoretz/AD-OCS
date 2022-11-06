@@ -3,23 +3,30 @@ import numpy as np
 from pathlib import Path
 
 print('Choose a datasets: \n 1 -> AMOCO_HN \n 2 -> provaADM1 \n 3 -> bsm2 \n 4 -> matlab \n 5 -> thoni')
-name_index = 5 # input("->")
+name_index = 1 # input("->")
 
 datasets = ["amoco_HN","provaADM1", "bsm2","matlab", "thoni"]
 simname  = datasets[int(name_index) -1]
 print("Data are from:",simname)
 
+air = 2 # input('Addition of air or pure O2? (1 for air, 2 for pure O2) -> ')
+gas = ['Air','Oxygen']
+while air != 1 and air != 2:
+    print('Wrong input, try again (insert 1 or 2)')
+    air = input('Addition of air or pure O2? (1 for air, 2 for pure O2) -> ')
+print('Gas is:',gas[int(air)-1],'\n')
+
 filename =simname + '.xlsx'
 p = Path.cwd()
-reading_path = p.parent / 'Working_data' / filename # Path to the file -  check that it correctly goes back tot the appropriate parent folder from current WD
-reading_path = r'C:\Users\fede1\OneDrive - Politecnico di Milano\Documenti\GitHub\AD-OCS\Working_data\thoni.xlsx'
+reading_path = p.parent.parent.parent.parent.parent / 'Working_data' / filename # Path to the file -  check that it correctly goes back tot the appropriate parent folder from current WD
+reading_path = r'C:\Users\fede1\OneDrive - Politecnico di Milano\Documenti\GitHub\AD-OCS\Working_data\amoco_HN.xlsx'
 
 
 colnames = ["HRT", "XT", "S1", "S2", "X1", "X2", "C", "Z", "CO2", "B", "pH", "P_C", "q_C", "q_CH4"]
 
 T1 = pd.read_excel(reading_path, sheet_name = "SS_Values",header = None, names = colnames, skiprows = 1)
 T2 = pd.read_excel(reading_path, sheet_name = "Influent", header = 0)
-T3 = pd.read_excel(reading_path, sheet_name = "Deviations", header = 0, index_col = 'time')
+T3 = pd.read_excel(reading_path, sheet_name = "Deviations", header = 0, index_col = 0)
 T4 = pd.read_excel(reading_path, sheet_name = "Reactor", header = 0)
 
 P_norm = 1 # [atm] Normal pressure
@@ -86,12 +93,3 @@ water_percentage= float(T2["xW"])                       # [-]    - Fraction stan
 
 # Get the array of the influent concentrations and flowrate
 y_in_0  = np.array([S1_in, S2_in, C_in, Z_in, XT_in, Q_in_0])
-# reorder the columns of T3 to get the proper order of the deviations for the functions
-T3_m = pd.DataFrame()
-T3_m["S1in"] = T3["S1in"]
-T3_m["S2in"] = T3["S2in"]
-T3_m["Cin"] = T3["Cin"]
-T3_m["Nin"] = T3["Nin"]
-T3_m["XTin"] = T3["XTin"]
-T3_m["Qin"] = T3["Qin"]
-T3 = T3_m

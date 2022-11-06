@@ -55,7 +55,7 @@ kd     = np.multiply(C_d,mu_max)
 # Hydrolysis
 
 X_hydr = XT
-Y_hydr = Dil*(XT_in-XT)
+Y_hydr = Dil*(XT_in_0-XT)
 mdl_hydr1= LinearRegression(fit_intercept=True, positive=True).fit(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
 mdl_hydr2= LinearRegression(fit_intercept=False, positive=True).fit(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
 scoreh1 = mdl_hydr1.score(np.array(X_hydr).reshape(-1,1), np.array(Y_hydr))
@@ -95,7 +95,7 @@ mu_1 = alfa*Dil + C_d[0]*mu1_max
 mu_2 = alfa*Dil + C_d[1]*mu2_max
 
 X4r = mu_1*X_1
-Y4r = Dil*(S1_in - S1) + k_hyd*XT
+Y4r = Dil*(S1_in_0 - S1) + k_hyd*XT
 mdl41 = LinearRegression(fit_intercept=True, positive=True).fit(np.array(X4r).reshape(-1,1), np.array(Y4r))
 mdl42 = LinearRegression(fit_intercept=False, positive=True).fit(np.array(X4r).reshape(-1,1), np.array(Y4r))
 score41 = mdl41.score(np.array(X4r).reshape(-1,1), np.array(Y4r))
@@ -122,11 +122,11 @@ else:
     mdl5 = mdl52
 int5 = mdl5.intercept_
 
-X61 = np.array(Dil*(S2_in-S2)).reshape((-1,1))
-X62 = np.array(Dil*(S1_in-S1) + k_hyd*XT).reshape((-1,1))
+X61 = np.array(Dil*(S2_in_0-S2)).reshape((-1,1))
+X62 = np.array(Dil*(S1_in_0-S1) + k_hyd*XT).reshape((-1,1))
 X6r = np.hstack((X61,X62))
 Y6r = np.array(q_M)
-
+k6 = k6*1.1
 mdl61 = LinearRegression(fit_intercept=True, positive=True).fit(X6r,Y6r)
 mdl62 = LinearRegression(fit_intercept=False, positive=True).fit(X6r,Y6r)
 score61 = mdl61.score(X6r, Y6r)
@@ -142,10 +142,10 @@ else:
     mdl6 = mdl62
 int6 = mdl6.intercept_
 
-X71 = np.array(Dil*(S1_in-S1) + k_hyd*XT).reshape((-1,1))
+X71 = np.array(Dil*(S1_in_0-S1) + k_hyd*XT).reshape((-1,1))
 X72 = np.array(q_M).reshape((-1,1))
 X7r = np.hstack((X71,X72))
-Y7r = np.array(q_C - Dil*(C_in - C))
+Y7r = np.array(q_C - Dil*(C_in_0 - C))
 
 mdl71 = LinearRegression(fit_intercept=False, positive=True).fit(X7r,Y7r)
 mdl72 = LinearRegression(fit_intercept=False, positive=True).fit(X7r,Y7r)
@@ -165,7 +165,7 @@ int7 = mdl7.intercept_
 
 k2 = BB*k1
 k3 = k6/AA
-k4 = 4.5*k1
+k4 = 4.85*k1
 k5 = DD*k6
 
 k = [k1, k2, k3, k4, k5, k6, k_hyd]

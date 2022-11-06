@@ -25,7 +25,8 @@ X2_SS   = 1/(k[2]*mu2_SS)*(D*(S2_in - S2_SS) + k[1]/k[0]*(D*(S1_in - S1_SS) + k[
 q_M_SS  = k[5]*mu2_SS*X2_SS
 
 gamma   = (k[0]*N_S1 - N_bac)*mu1_SS*X1_SS - N_bac*mu2_SS*X2_SS + kd[0]*N_bac*X1_SS + kd[1]*N_bac*X2_SS
-Z_SS    = Z_in + gamma/D
+
+Z_SS    = gamma/D + Z_in 
 
 epsi    = D*(C_in + S2_SS - Z_SS) + k[3]*mu1_SS*X1_SS + k[4]*mu2_SS*X2_SS
 om      = Pt*kLa*D*KH + kLa*epsi + q_M_SS*(kLa + D)

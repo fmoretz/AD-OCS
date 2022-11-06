@@ -19,15 +19,15 @@ T_base =  298.15 #K
 p_atm =  1.013 #bar
 T_op =  308.15 +7.5#k ##T_ad #=35 C
 HRT_vett = [10, 12, 13, 14, 15, 16, 17, 18, 20, 22, 24, 26]  # d
-name = 'thoni'
+name = 'thoni_2'
 influent_state = pd.read_csv(name + "_digester_influent"+ ".csv")
 initial_state = pd.read_csv(name + "_digester_initial"+  ".csv")
 
 ##parameter definition from the Rosen et al (2006) BSM2 report bmadm1_report
 # Stoichiometric parameter
-f_sI_xc =  0.13 # 0.1
-f_xI_xc =  0.32 # 0.2
-f_ch_xc =  0.45 # 0.2
+f_sI_xc =  0.10 # 0.1
+f_xI_xc =  0.30 # 0.2
+f_ch_xc =  0.50 # 0.2
 f_pr_xc =  0.05 # 0.2
 f_li_xc =  0.05 # 0.3
 N_xc =  0.0376 / 14

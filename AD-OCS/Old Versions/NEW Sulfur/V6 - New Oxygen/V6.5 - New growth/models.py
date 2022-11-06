@@ -17,7 +17,7 @@ def AD_OCS(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_ch
     S2in = y_influent[1]      # [mmol/L]
     Cin  = y_influent[2]      # [mmol/L]
     Zin  = y_influent[3]      # [mmol/L]
-    XTin = y_influent[4]      # [gCOD/L]
+    XTin = y_influent[4]      # [gCOD/L]    
    
     mu1 = mu_max[0]*(S1/(S1+Ks[0]))                                                                  # Monod
     mu2 = mu_max[1]*(S2/(S2+Ks[1]+S2**2/KI2))                                                        # Haldane
@@ -62,7 +62,7 @@ def AMOCO_HN(x,t,alfa,mu_max,Ks,KI2,KH,Pt,kLa,D,k,kd,N_bac,N_S1,X2_0,t_0,y_in,t_
     Cin  = y_influent[2]      # [mmol/L]
     Zin  = y_influent[3]      # [mmol/L]
     XTin = y_influent[4]      # [gCOD/L]
-   
+    
     mu1 = mu_max[0]*(S1/(S1+Ks[0]))                                                                  # Monod
     mu2 = mu_max[1]*(S2/(S2+Ks[1]+S2**2/KI2))                                                        # Haldane
 

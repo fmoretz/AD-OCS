@@ -27,7 +27,6 @@ def headspace_dynamics_discr(Nin, P, T, Vgas, tau_head):
         'H2O': 18.0
     }
     
-
     n_out = {
         'H2S': np.zeros(len(t)),
         'O2':  np.zeros(len(t)),
@@ -66,10 +65,9 @@ def headspace_dynamics_discr(Nin, P, T, Vgas, tau_head):
     print('Simulation is on going...')
     t0 = time.time()
 
-    for i in range(1, len(t)):
-    #                                                                                     CH4       CO2
-        x_out['H2S'][i-1] = n_out['H2S'][i-1] / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + 2537.39 + 706.49)
-        x_out['O2'][i-1]  = n_out['O2'][i-1]  / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + 2537.39 + 706.49)
+    for i in range(1, len(t)):    #                                                                                     
+        x_out['H2S'][i-1] = n_out['H2S'][i-1] / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + F_out['CH4'][i-1]*tau_head[i-1] + F_out['CO2'][i-1]*tau_head[i-1])
+        x_out['O2'][i-1]  = n_out['O2'][i-1]  / (n_out['H2O'][i-1] + n_out['H2S'][i-1] + n_out['O2'][i-1] + F_out['CH4'][i-1]*tau_head[i-1] + F_out['CO2'][i-1]*tau_head[i-1])
         
         c_out['H2S'][i-1] = x_out['H2S'][i-1] * P/R/T # mol/L
         c_out['O2'][i-1]  = x_out['O2'][i-1]  * P/R/T # mol/L
